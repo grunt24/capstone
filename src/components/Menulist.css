@@ -1,0 +1,24 @@
+.greeting-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 50px;
+    border-top: 1px solid #778584;
+    border-bottom: 1px solid #778584;
+    margin-bottom: 30px;
+    margin-top: 19px;
+
+
+
+  }
+  
+  .greeting-content {
+    font-size: 20px;
+    font-weight: bold;
+    color: #333;
+  }
+  
+  .username {
+    color: #00796b;
+  }
+  
