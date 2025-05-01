@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Form, Input, Button, message, Spin, Alert } from "antd";
+import loginService from "../../../api/loginService";
 import "./Login.css";
 
 const Login = () => {
@@ -10,30 +11,35 @@ const Login = () => {
 
   const handleSubmit = async (values) => {
     setLoading(true);
-    setError("");
+    setError(""); // Clear previous errors
   
     try {
-      if (values.userName === "admin" && values.password === "admin") {
+      const { success, userDetails } = await loginService.login(values.userName, values.password);
+  
+      if (success) {
         message.success("Login Successful!", 2);
+        localStorage.setItem("userRoles", JSON.stringify(userDetails.role));
+  
         setTimeout(() => {
           navigate("/dashboard");
           setLoading(false);
-        }, 3000);
-        return;
+        }, 2000);
       } else {
-        setError("Invalid username or password. Please try again.");
+        throw new Error("Invalid username or password");
       }
-    } catch (error) {
-      setError(error.message || "An error occurred. Please try again.");
+    } catch (loginError) {
+      console.error("Login failed:", loginError);
+      setError("Invalid username or password");
+      setLoading(false);
     }
-    setLoading(false);
   };
+  
   
 
   return (
     <div className="container">
       <div className="form-container">
-        <p className="title">Performance Tracker</p>
+        <p className="title">BCAS Grade Portal</p>
         
         {error && <Alert message={error} type="error" showIcon style={{ marginBottom: "10px" }} />}
         
@@ -45,14 +51,14 @@ const Login = () => {
             <Input.Password className="input" placeholder="Password" />
           </Form.Item>
           <p className="page-link">
-            <span className="page-link-label">Forgot Password?</span>
+            {/* <span className="page-link-label">Forgot Password?</span> */}
           </p>
           <Button htmlType="submit" className="form-btn" block disabled={loading}>
             {loading ? <Spin size="small" /> : "Login"}
           </Button>
         </Form>
         <p className="sign-up-label">
-          Don't have an account? <span className="sign-up-link">Sign up</span>
+          {/* Don't have an account? <span className="sign-up-link">Sign up</span> */}
         </p>
       </div>
     </div>

@@ -18,13 +18,13 @@ const SidebarMenu = ({ collapsed }) => {
   return (
     <Menu theme="light" mode="inline" style={{ minHeight: "100vh" }}>
       <Menu.Item key="home1" icon={<MdPayments />} style={{ marginTop: 10 }}>
-        <p style={{ fontWeight: 700 }}>Performance Tracker</p>
+        <p style={{ fontWeight: 700 }}>BCAS Grade Portal</p>
       </Menu.Item>
 
       {!collapsed && userName && (
         <div className="greeting-container">
           <div className="greeting-content">
-            <span>Role: </span><span className="username">{userName}</span>
+            <span>Hello, </span><span className="username">{userName}!</span>
           </div>
         </div>
       )}

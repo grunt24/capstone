@@ -46,7 +46,7 @@ const Dashboard = () => {
     {
       key: "1",
       studentId: "2025-101",
-      name: "Lance Christian",
+      name: "Lawrence Paolo Mercado Caguicla",
       department: "IT",
       subjects: [
         { subject: "Capstone", assessment: 85, quiz: 90, exam: 88 },
@@ -57,7 +57,17 @@ const Dashboard = () => {
     {
       key: "2",
       studentId: "2025-102",
-      name: "Test",
+      name: "Roxanne Recio",
+      department: "IT",
+      subjects: [
+        { subject: "Capstone", assessment: 75, quiz: 78, exam: 80 },
+        { subject: "Database", assessment: 88, quiz: 85, exam: 87 },
+      ],
+    },
+    {
+      key: "3",
+      studentId: "2025-102",
+      name: "Shaina Borres",
       department: "IT",
       subjects: [
         { subject: "Capstone", assessment: 75, quiz: 78, exam: 80 },

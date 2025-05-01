@@ -1,15 +1,21 @@
-import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import Login from './pages/Login/Login.jsx';
 import Dashboard from './pages/Dashboard/Dashboard.jsx';
 import PageLayout from './components/PageLayout.jsx';
-import './components/Menulist.css'
+import ProtectedRoute from './components/ProtectedRoute.jsx';
+import './components/Menulist.css';
 
 const router = createBrowserRouter([
   {
-    element: <PageLayout />,
+    element: <ProtectedRoute />,
     children: [
-      { path: "/dashboard", element: <Dashboard /> },
-    ]
+      {
+        element: <PageLayout />,
+        children: [
+          { path: "/dashboard", element: <Dashboard /> },
+        ],
+      }
+    ],
   },
   { path: "/", element: <Login /> },
 ]);

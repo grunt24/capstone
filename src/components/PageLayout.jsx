@@ -3,7 +3,9 @@ import { Layout, Button } from "antd";
 import { Outlet, useNavigate } from "react-router-dom";
 import { RiLogoutCircleRLine } from "react-icons/ri";
 import { MenuFoldOutlined, MenuUnfoldOutlined } from "@ant-design/icons";
+
 import Menulist from "./Menulist";
+import loginService from "../../api/loginService";
 
 const { Header, Sider, Content } = Layout;
 
@@ -12,6 +14,7 @@ const PageLayout = () => {
   const navigate = useNavigate();
 
   const handleLogout = () => {
+    loginService.logout();
     navigate("/");
   };
 
