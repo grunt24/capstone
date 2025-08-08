@@ -3,6 +3,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import axiosInstance from '../../../api/axiosInstance';
+import loginService from '../../../api/loginService';
 
 function StudentSubject() {
   const [students, setStudents] = useState([]);
@@ -16,45 +17,50 @@ function StudentSubject() {
   const [selectedSubjectIds, setSelectedSubjectIds] = useState([]);
   const [currentRole, setCurrentRole] = useState('');
 
+  // Table state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortAsc, setSortAsc] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  const fetchStudentsAndSubjects = async () => {
+    try {
+      const userDetails = loginService.getUserDetails();
+      setCurrentRole(userDetails.role || '');
+
+      const { data: allStudents } = await axiosInstance.get('/Auth/all-students');
+
+      setStudents(
+        userDetails.role === 'Student'
+          ? allStudents.filter(s => s.username === userDetails.userName)
+          : allStudents
+      );
+
+      const { data: subjectData } = await axiosInstance.get('/StudentSubjects');
+      const map = subjectData.reduce((acc, s) => {
+        acc[s.userId] = s.subjects.map(sub => ({
+          ...sub,
+          scores: {
+            quiz: Math.floor(Math.random() * 21) + 80,
+            exam: Math.floor(Math.random() * 21) + 75,
+            project: Math.floor(Math.random() * 26) + 70,
+            attendance: Math.floor(Math.random() * 11) + 90
+          }
+        }));
+        return acc;
+      }, {});
+      setSubjectsMap(map);
+
+      const { data: availData } = await axiosInstance.get('/Subjects');
+      setAvailableSubjects(availData);
+    } catch (err) {
+      console.error('Error fetching data:', err);
+      toast.error('Failed to load student or subject data.');
+    }
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const userDetails = JSON.parse(localStorage.getItem("userDetails")) || {};
-        setCurrentRole(userDetails.role || '');
-
-        const { data: allStudents } = await axiosInstance.get('/Auth/all-students');
-
-        setStudents(  
-          userDetails.role === 'Student'
-            ? allStudents.filter(s => s.username === userDetails.userName)
-            : allStudents
-        );
-
-const { data: subjectData } = await axiosInstance.get('/StudentSubjects');
-
-        const map = subjectData.reduce((acc, s) => {
-          acc[s.userId] = s.subjects.map(sub => ({
-            ...sub,
-            scores: {
-              quiz: Math.floor(Math.random() * 21) + 80,
-              exam: Math.floor(Math.random() * 21) + 75,
-              project: Math.floor(Math.random() * 26) + 70,
-              attendance: Math.floor(Math.random() * 11) + 90
-            }
-          }));
-          return acc;
-        }, {});
-        setSubjectsMap(map);
-
-const { data: availData } = await axiosInstance.get('/Subjects');
-
-        setAvailableSubjects(availData);
-      } catch (err) {
-        console.error('Error fetching data:', err);
-      }
-    };
-
-    fetchData();
+    fetchStudentsAndSubjects();
   }, []);
 
   const toggleDetails = id => setExpandedUserId(prev => (prev === id ? null : id));
@@ -67,45 +73,52 @@ const { data: availData } = await axiosInstance.get('/Subjects');
   const handleAddStudent = async e => {
     e.preventDefault();
     try {
-const res = await axiosInstance.post('/StudentSubjects', {
-  studentId: selectedStudentId,
-  subjectIds: selectedSubjectIds
-});
-      if (res.ok) {
-        toast.success('Student added successfully!');
-        setShowAddStudentModal(false);
-        setFormData({ username: '', password: '', fullname: '', department: '', yearLevel: '' });
-        // Refresh data
-  const { data: allStudents } = await axiosInstance.get('/Auth/all-students');
-  setStudents(allStudents);
-      } else {
-        const err = await res.json();
-        toast.error(err.message || 'Error adding student.');
-      }
+      const res = await axiosInstance.post('/Auth/register-student', {
+        username: formData.username,
+        password: formData.password,
+        fullname: formData.fullname,
+        department: formData.department,
+        yearLevel: formData.yearLevel,
+        role: 'Student'
+      });
+      toast.success('Student added successfully!');
+      setShowAddStudentModal(false);
+      setFormData({ username: '', password: '', fullname: '', department: '', yearLevel: '' });
+      fetchStudentsAndSubjects();
     } catch (err) {
       console.error(err);
-      toast.error('An unexpected error occurred.');
+      toast.error(err.response?.data?.message || 'Error adding student.');
     }
   };
 
-  const handleDeleteStudent = async id => {
-    if (!window.confirm("Are you sure you want to delete this student?")) return;
-    try {
-const res = await axiosInstance.delete(`/Auth/delete-user/${id}`);
-
-      if (res.ok) {
-        toast.success('Student deleted successfully.');
-const { data: allStudents } = await axiosInstance.get('/Auth/all-students');
-setStudents(allStudents);
-
-      } else {
-        const err = await res.json();
-        toast.error(err.message || 'Failed to delete student.');
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error('An unexpected error occurred.');
-    }
+  const confirmDelete = id => {
+    toast.info(() => (
+      <div>
+        Are you sure you want to delete this student?
+        <div className="mt-2">
+          <button
+            className="btn btn-sm btn-danger me-2"
+            onClick={async () => {
+              try {
+                await axiosInstance.delete(`/Auth/delete-user/${id}`);
+                toast.dismiss();
+                toast.success('Student deleted successfully.');
+                fetchStudentsAndSubjects();
+              } catch (err) {
+                toast.dismiss();
+                toast.error('Failed to delete student.');
+                console.error(err);
+              }
+            }}
+          >
+            Yes, delete
+          </button>
+          <button className="btn btn-sm btn-secondary" onClick={() => toast.dismiss()}>
+            Cancel
+          </button>
+        </div>
+      </div>
+    ), { autoClose: false, closeOnClick: false, draggable: false, closeButton: false });
   };
 
   const handleAssignSubjects = async e => {
@@ -114,63 +127,87 @@ setStudents(allStudents);
     if (!selectedSubjectIds.length) return toast.error('Please select at least one subject.');
 
     try {
-const res = await axiosInstance.post('/StudentSubjects', {
-  studentId: selectedStudentId,
-  subjectIds: selectedSubjectIds
-});
+      await axiosInstance.post('/StudentSubjects', {
+        studentId: selectedStudentId,
+        subjectIds: selectedSubjectIds
+      });
 
-      if (res.ok) {
-        toast.success('Subjects assigned successfully!');
-        setShowAssignSubjectsModal(false);
-        // Refresh data
-const { data: subjectData } = await axiosInstance.get('/StudentSubjects');
-        const map = subjectData.reduce((acc, s) => {
-          acc[s.userId] = s.subjects.map(sub => ({
-            ...sub,
-            scores: {
-              quiz: Math.floor(Math.random() * 21) + 80,
-              exam: Math.floor(Math.random() * 21) + 75,
-              project: Math.floor(Math.random() * 26) + 70,
-              attendance: Math.floor(Math.random() * 11) + 90
-            }
-          }));
-          return acc;
-        }, {});
-        setSubjectsMap(map);
-      } else {
-        const err = await res.json();
-        toast.error(err.message || 'Failed to assign subjects.');
-      }
+      toast.success('Subjects assigned successfully!');
+      setShowAssignSubjectsModal(false);
+      setSelectedStudentId(null);
+      setSelectedSubjectIds([]);
+      fetchStudentsAndSubjects();
     } catch (err) {
       console.error(err);
-      toast.error('An unexpected error occurred.');
+      toast.error(err.response?.data?.message || 'An unexpected error occurred.');
     }
   };
 
+  // Filter, Sort, and Paginate
+  const filteredStudents = students
+    .filter(s => s.fullname.toLowerCase().includes(searchTerm.toLowerCase()))
+    .sort((a, b) => {
+      const nameA = a.fullname.toLowerCase();
+      const nameB = b.fullname.toLowerCase();
+      return sortAsc ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
+    });
+
+  const totalPages = Math.ceil(filteredStudents.length / itemsPerPage);
+  const displayedStudents = filteredStudents.slice(
+    (currentPage - 1) * itemsPerPage,
+    itemsPerPage === 'All' ? filteredStudents.length : currentPage * itemsPerPage
+  );
+
   return (
     <div style={{ height: 'auto' }}>
-      <div style={{ marginTop: '50px', display: 'flex', gap: '10px', alignItems: 'center' }}>
-        <h4><b>Students</b></h4>
+      <div style={{display: 'flex', gap: '10px', alignItems: 'center' }}>
         {currentRole !== 'Student' && (
           <>
             <button className="btn btn-success" onClick={() => setShowAddStudentModal(true)}>Add Student</button>
-            {/* <button className="btn btn-success" onClick={() => setShowAddStudentModal(false)}>Add Student</button> */}
             <button className="btn btn-info" onClick={() => setShowAssignSubjectsModal(true)}>Assign Subjects</button>
-            {/* <button className="btn btn-info" onClick={() => setShowAssignSubjectsModal(false)}>Assign Subjects</button> */}
           </>
         )}
       </div>
+
+      <div className="row my-3">
+        <div className="col-md-6">
+          <input
+            className="form-control"
+            placeholder="Search by Full Name..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <div className="col-md-3">
+          <select
+            className="form-select"
+            value={itemsPerPage}
+            onChange={e => {
+              const value = e.target.value === 'All' ? 'All' : parseInt(e.target.value);
+              setItemsPerPage(value);
+              setCurrentPage(1);
+            }}
+          >
+            {[5, 10, 20, 'All'].map(num => (
+              <option key={num} value={num}>{num}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
       <table className="table table-bordered table-hover mt-3">
         <thead className="table-light">
           <tr>
-            <th>Full Name</th>
+            <th onClick={() => setSortAsc(prev => !prev)} style={{ cursor: 'pointer' }}>
+              Full Name {sortAsc ? '▲' : '▼'}
+            </th>
             <th>Department</th>
             <th>Year Level</th>
             <th style={{ width: '200px' }}>Action</th>
           </tr>
         </thead>
         <tbody>
-          {students.map(student => (
+          {displayedStudents.map(student => (
             <React.Fragment key={student.id}>
               <tr>
                 <td>{student.fullname}</td>
@@ -178,16 +215,14 @@ const { data: subjectData } = await axiosInstance.get('/StudentSubjects');
                 <td>{student.yearLevel || '-'}</td>
                 <td>
                   {currentRole !== 'Student' && (
-                    // <button className="btn btn-sm btn-danger">Delete</button>
-                    <button className="btn btn-sm btn-danger" onClick={() => handleDeleteStudent(student.id)}>Delete</button>
-
+                    <button className="btn btn-sm btn-danger" onClick={() => confirmDelete(student.id)}>Delete</button>
                   )}
                   {subjectsMap[student.id] ? (
                     <button className="btn btn-sm btn-primary ms-2" onClick={() => toggleDetails(student.id)}>
                       {expandedUserId === student.id ? 'Hide Subjects' : 'View Subjects'}
                     </button>
                   ) : (
-                    <span className="text-muted">No subjects</span>
+                    <span className="text-muted ms-2">No subjects</span>
                   )}
                 </td>
               </tr>
@@ -225,6 +260,24 @@ const { data: subjectData } = await axiosInstance.get('/StudentSubjects');
           ))}
         </tbody>
       </table>
+
+      <div className="d-flex justify-content-between">
+        <button
+          className="btn btn-secondary"
+          disabled={currentPage <= 1}
+          onClick={() => setCurrentPage(prev => prev - 1)}
+        >
+          Previous
+        </button>
+        <span>Page {currentPage} of {totalPages}</span>
+        <button
+          className="btn btn-secondary"
+          disabled={currentPage >= totalPages}
+          onClick={() => setCurrentPage(prev => prev + 1)}
+        >
+          Next
+        </button>
+      </div>
 
       {/* Add Student Modal */}
       {showAddStudentModal && (

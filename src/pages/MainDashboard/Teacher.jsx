@@ -21,6 +21,12 @@ function Teacher() {
     subjectIds: []
   });
 
+  // Table state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortAsc, setSortAsc] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
   useEffect(() => {
     const userDetails = loginService.getUserDetails();
     if (userDetails) {
@@ -36,11 +42,16 @@ function Teacher() {
     }
   }, []);
 
-useEffect(() => {
-  if (userRole && loggedInUsername) {
-    loadAllTeachers();
-  }
-}, [userRole, loggedInUsername]);
+  useEffect(() => {
+    if (userRole && loggedInUsername) {
+      loadAllTeachers();
+    }
+  }, [userRole, loggedInUsername]);
+
+  const loadSubjects = async () => {
+    const res = await axiosInstance.get('/Subjects');
+    setSubjects(res.data);
+  };
 
   const loadTeacherById = async (teacherId) => {
     try {
@@ -52,7 +63,6 @@ useEffect(() => {
     }
   };
 
-
   const loadAllTeachers = async () => {
     try {
       const res = await axiosInstance.get('/Teachers');
@@ -63,14 +73,7 @@ useEffect(() => {
     }
   };
 
-
-
-  const loadSubjects = async () => {
-    const res = await axiosInstance.get('/Subjects');
-    setSubjects(res.data);
-  };
-
-  const toggleSubjects = (id) => {
+    const toggleSubjects = (id) => {
     setExpandedTeacherId(prev => (prev === id ? null : id));
   };
 
@@ -100,111 +103,140 @@ useEffect(() => {
     });
   };
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  const cleanedSubjectIds = formData.subjectIds.filter(id => typeof id === 'number');
+    const cleanedSubjectIds = formData.subjectIds.filter(id => typeof id === 'number');
 
-  const payload = editing
-    ? {
-        fullname: formData.fullname,
-        userId: formData.userId,
-        subjectIds: cleanedSubjectIds
+    const payload = editing
+      ? {
+          fullname: formData.fullname,
+          userId: formData.userId,
+          subjectIds: cleanedSubjectIds
+        }
+      : {
+          fullname: formData.fullname,
+          username: formData.username,
+          password: formData.password,
+          subjectIds: cleanedSubjectIds
+        };
+
+    try {
+      if (editing) {
+        await axiosInstance.put(`/Teachers/${editing.id}`, payload);
+      } else {
+        await axiosInstance.post(`/Teachers/create-teacher-with-subjects`, payload);
       }
-    : {
-        fullname: formData.fullname,
-        username: formData.username,
-        password: formData.password,
-        subjectIds: cleanedSubjectIds
-      };
 
-  try {
-    if (editing) {
-      // Update existing teacher
-      await axiosInstance.put(`/Teachers/${editing.id}`, payload);
-    } else {
-      // Create new teacher with account and subjects
-      await axiosInstance.post(`/Teachers/create-teacher-with-subjects`, payload);
+      toast.success(`Teacher ${editing ? 'updated' : 'created'} successfully!`);
+      setShowModal(false);
+      loadAllTeachers();
+
+    } catch (error) {
+      console.error("Submission error:", error);
+
+      const message =
+        error.response?.data?.message ||
+        `Failed to ${editing ? 'update' : 'create'} teacher.`;
+
+      toast.error(message);
     }
-
-    toast.success(`Teacher ${editing ? 'updated' : 'created'} successfully!`);
-    setShowModal(false);
-    loadAllTeachers();
-
-  } catch (error) {
-    console.error("Submission error:", error);
-
-    const message =
-      error.response?.data?.message ||
-      `Failed to ${editing ? 'update' : 'create'} teacher.`;
-
-    toast.error(message);
-  }
-};
-
-
-
-const confirmDelete = (id) => {
-  toast.info(() => (
-    <div>
-      Are you sure you want to delete this teacher?
-      <div className="mt-2">
-        <button
-          className="btn btn-sm btn-danger me-2"
-          onClick={async () => {
-            try {
-              await axiosInstance.delete(`/Teachers/${id}`);
-              toast.dismiss();
-              toast.success('Teacher deleted.');
-              loadAllTeachers();
-            } catch (err) {
-              toast.dismiss();
-              toast.error('Failed to delete.');
-              console.error(err);
-            }
-          }}
-        >
-          Yes, delete
-        </button>
-        <button className="btn btn-sm btn-secondary" onClick={() => toast.dismiss()}>
-          Cancel
-        </button>
+  };
+  const confirmDelete = (id) => {
+    toast.info(() => (
+      <div>
+        Are you sure you want to delete this teacher?
+        <div className="mt-2">
+          <button
+            className="btn btn-sm btn-danger me-2"
+            onClick={async () => {
+              try {
+                await axiosInstance.delete(`/Teachers/${id}`);
+                toast.dismiss();
+                toast.success('Teacher deleted.');
+                loadAllTeachers();
+              } catch (err) {
+                toast.dismiss();
+                toast.error('Failed to delete.');
+                console.error(err);
+              }
+            }}
+          >
+            Yes, delete
+          </button>
+          <button className="btn btn-sm btn-secondary" onClick={() => toast.dismiss()}>
+            Cancel
+          </button>
+        </div>
       </div>
-    </div>
-  ), { autoClose: false, closeOnClick: false, draggable: false, closeButton: false });
-};
+    ), { autoClose: false, closeOnClick: false, draggable: false, closeButton: false });
+  };
 
+  // Filter, Sort, and Paginate
+  const filteredTeachers = teachers
+    .filter(t => t.fullname.toLowerCase().includes(searchTerm.toLowerCase()))
+    .sort((a, b) => {
+      const nameA = a.fullname.toLowerCase();
+      const nameB = b.fullname.toLowerCase();
+      return sortAsc ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
+    });
 
+  const totalPages = Math.ceil(filteredTeachers.length / itemsPerPage);
+  const displayedTeachers = filteredTeachers.slice(
+    (currentPage - 1) * itemsPerPage,
+    itemsPerPage === 'All' ? filteredTeachers.length : currentPage * itemsPerPage
+  );
   return (
     <div>
-      <h4><b>Teachers</b></h4>
-
       {userRole !== 'Teacher' && (
-        //         <button className="btn btn-success mb-3" onClick={() => toast()}>
-        //   Add Teacher
-        // </button>
         <button className="btn btn-success mb-3" onClick={() => openModal()}>
           Add Teacher
         </button>
       )}
 
+      <div className="row mb-3">
+        <div className="col-md-6">
+          <input
+            className="form-control"
+            placeholder="Search by Full Name..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <div className="col-md-3">
+          <select
+            className="form-select"
+            value={itemsPerPage}
+            onChange={e => {
+              const value = e.target.value === 'All' ? 'All' : parseInt(e.target.value);
+              setItemsPerPage(value);
+              setCurrentPage(1);
+            }}
+          >
+            {[5, 10, 20, 'All'].map(num => (
+              <option key={num} value={num}>{num}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
       <table className="table table-bordered table-hover">
         <thead className="table-light">
           <tr>
-            <th>Full Name</th>
+            <th onClick={() => setSortAsc(prev => !prev)} style={{ cursor: 'pointer' }}>
+              Full Name {sortAsc ? '▲' : '▼'}
+            </th>
             <th style={{ width: '350px' }}>Actions</th>
           </tr>
         </thead>
         <tbody>
-          {teachers.map(teacher => (
+          {displayedTeachers.map(teacher => (
             <React.Fragment key={teacher.id}>
               <tr>
                 <td>{teacher.fullname}</td>
                 <td>
                   {(userRole !== 'Teacher' || teacher.username === loggedInUsername) && (
                     <>
-                      {/* <button className="btn btn-sm btn-primary me-2" onClick={() => toast()}>Edit</button>
-                      <button className="btn btn-sm btn-danger me-2" onClick={() => toast()}>Delete</button> */}
                       <button className="btn btn-sm btn-primary me-2" onClick={() => openModal(teacher)}>Edit</button>
                       <button className="btn btn-sm btn-danger me-2" onClick={() => confirmDelete(teacher.id)}>Delete</button>
                     </>
@@ -221,11 +253,10 @@ const confirmDelete = (id) => {
                     {teacher.subjects?.length ? (
                       <ul>
                         {teacher.subjects.map(s => (
-<li key={s.subjectCode}>
-  <strong>{s.subjectName}</strong> ({s.subjectCode}) - {s.credits} credits<br />
-  <small>{s.description}</small>
-</li>
-
+                          <li key={s.subjectCode}>
+                            <strong>{s.subjectName}</strong> ({s.subjectCode}) - {s.credits} credits<br />
+                            <small>{s.description}</small>
+                          </li>
                         ))}
                       </ul>
                     ) : <p className="text-muted">No subjects assigned.</p>}
@@ -236,6 +267,24 @@ const confirmDelete = (id) => {
           ))}
         </tbody>
       </table>
+
+      <div className="d-flex justify-content-between">
+        <button
+          className="btn btn-secondary"
+          disabled={currentPage <= 1}
+          onClick={() => setCurrentPage(prev => prev - 1)}
+        >
+          Previous
+        </button>
+        <span>Page {currentPage} of {totalPages}</span>
+        <button
+          className="btn btn-secondary"
+          disabled={currentPage >= totalPages}
+          onClick={() => setCurrentPage(prev => prev + 1)}
+        >
+          Next
+        </button>
+      </div>
 
       {/* Modal */}
       {showModal && (

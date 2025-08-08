@@ -105,23 +105,23 @@ useEffect(() => {
         </ResponsiveContainer>
       </div> */}
 
-      <div style={{ marginTop: 40 }}>
+      <Card title="Student Subjects" className="mt-4" bordered={false}>
         <StudentSubject />
-      </div>
-      <div>
+      </Card>
+      
+      <Card title="Subjects" className="mt-4" bordered={false}>
         <Subjects />
-      </div>
-      <div>
+      </Card>
+      
+      <Card title="Teacher Management" className="mt-4" bordered={false}>
         <Teacher />
-      </div>
+      </Card>
     </>
   );
 }
 
 export default MainDashboard;
 
-
-// import React, { useEffect, useState } from 'react';
 // import {
 //   BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer
 // } from 'recharts';

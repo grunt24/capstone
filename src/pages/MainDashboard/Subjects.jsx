@@ -18,6 +18,12 @@ function Subjects() {
     teacherId: ''
   });
 
+  // Table state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortAsc, setSortAsc] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
   useEffect(() => {
     loadSubjects();
     loadTeachers();
@@ -68,78 +74,111 @@ function Subjects() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  const payload = {
-    subjectCode: formData.subjectCode,
-    subjectName: formData.subjectName,
-    description: formData.description,
-    credits: Number(formData.credits),
-    teacherId: Number(formData.teacherId)
-  };
+    const payload = {
+      subjectCode: formData.subjectCode,
+      subjectName: formData.subjectName,
+      description: formData.description,
+      credits: Number(formData.credits),
+      teacherId: Number(formData.teacherId)
+    };
 
-  const msg = editingSubject ? 'updated' : 'created';
+    const msg = editingSubject ? 'updated' : 'created';
 
-  try {
-    if (editingSubject) {
-      // Update existing subject
-      await axiosInstance.put(`/Subjects/${editingSubject.id}`, payload);
-    } else {
-      // Create new subject
-      await axiosInstance.post('/Subjects', payload);
+    try {
+      if (editingSubject) {
+        // Update existing subject
+        await axiosInstance.put(`/Subjects/${editingSubject.id}`, payload);
+      } else {
+        // Create new subject
+        await axiosInstance.post('/Subjects', payload);
+      }
+
+      toast.success(`Subject ${msg} successfully!`);
+      setShowModal(false);
+      loadSubjects();
+
+    } catch (error) {
+      console.error(`Error during subject ${msg}:`, error);
+
+      const errMsg =
+        error.response?.data?.message ||
+        `Failed to ${msg} subject.`;
+
+      toast.error(errMsg);
     }
-
-    toast.success(`Subject ${msg} successfully!`);
-    setShowModal(false);
-    loadSubjects();
-
-  } catch (error) {
-    console.error(`Error during subject ${msg}:`, error);
-
-    const errMsg =
-      error.response?.data?.message ||
-      `Failed to ${msg} subject.`;
-
-    toast.error(errMsg);
-  }
-};
+  };
 
   const handleDelete = async (id) => {
     const confirmed = window.confirm('Are you sure you want to delete this subject?');
     if (!confirmed) return;
 
-    const res = await axiosInstance.get(`/Subjects/${id}`, {
-      method: 'DELETE'
-    });
-
-    if (res.ok) {
+    try {
+      await axiosInstance.delete(`/Subjects/${id}`);
       toast.success('Subject deleted successfully!');
       loadSubjects();
-    } else {
-      toast.error('Failed to delete subject.');
+    } catch (error) {
+      toast.error('Failed to delete subject.', error);
     }
   };
 
+  // Filter, Sort, and Paginate
+  const filteredSubjects = subjects
+    .filter(sub => sub.subjectName.toLowerCase().includes(searchTerm.toLowerCase()))
+    .sort((a, b) => {
+      const nameA = a.subjectName.toLowerCase();
+      const nameB = b.subjectName.toLowerCase();
+      return sortAsc ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
+    });
+
+  const totalPages = Math.ceil(filteredSubjects.length / itemsPerPage);
+  const displayedSubjects = filteredSubjects.slice(
+    (currentPage - 1) * itemsPerPage,
+    itemsPerPage === 'All' ? filteredSubjects.length : currentPage * itemsPerPage
+  );
   return (
     <div>
-      <h4>
-        <b>Subjects</b>
-      </h4>
-            {/* <button className="btn btn-success mb-3" onClick={() => toast.info()}>
-        Add Subject
-      </button> */}
       <button className="btn btn-success mb-3" onClick={() => openModal()}>
         Add Subject
       </button>
+
+      <div className="row mb-3">
+        <div className="col-md-6">
+          <input
+            className="form-control"
+            placeholder="Search by Subject Name..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <div className="col-md-3">
+          <select
+            className="form-select"
+            value={itemsPerPage}
+            onChange={e => {
+              const value = e.target.value === 'All' ? 'All' : parseInt(e.target.value);
+              setItemsPerPage(value);
+              setCurrentPage(1);
+            }}
+          >
+            {[5, 10, 20, 'All'].map(num => (
+              <option key={num} value={num}>{num}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
       {loading ? (
         <p>Loading...</p>
       ) : (
         <table className="table table-bordered table-hover">
           <thead className="table-light">
             <tr>
-              <th>Code</th>
-              <th>Name</th>
+              <th onClick={() => setSortAsc(prev => !prev)} style={{ cursor: 'pointer' }}>
+                Name {sortAsc ? '▲' : '▼'}
+              </th>
               <th>Description</th>
               <th>Credits</th>
               <th>Teacher</th>
@@ -147,26 +186,13 @@ const handleSubmit = async (e) => {
             </tr>
           </thead>
           <tbody>
-            {subjects.map((sub) => (
+            {displayedSubjects.map((sub) => (
               <tr key={sub.id}>
-                <td>{sub.subjectCode}</td>
                 <td>{sub.subjectName}</td>
                 <td>{sub.description || "—"}</td>
                 <td>{sub.credits}</td>
                 <td>{sub.teacherName}</td>
                 <td>
-                  {/* <button
-                    className="btn btn-sm btn-primary me-2"
-                    onClick={() => toast.info()}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    className="btn btn-sm btn-danger"
-                    onClick={() => toast.info()}
-                  >
-                    Delete
-                  </button> */}
                   <button className="btn btn-sm btn-primary me-2" onClick={() => openModal(sub)}>
                     Edit
                   </button>
@@ -180,44 +206,49 @@ const handleSubmit = async (e) => {
         </table>
       )}
 
-      {showModal && (
-        <div
-          className="modal show d-block"
-          tabIndex="-1"
-          style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+      <div className="d-flex justify-content-between">
+        <button
+          className="btn btn-secondary"
+          disabled={currentPage <= 1}
+          onClick={() => setCurrentPage(prev => prev - 1)}
         >
+          Previous
+        </button>
+        <span>Page {currentPage} of {totalPages}</span>
+        <button
+          className="btn btn-secondary"
+          disabled={currentPage >= totalPages}
+          onClick={() => setCurrentPage(prev => prev + 1)}
+        >
+          Next
+        </button>
+      </div>
+
+      {/* Modal */}
+      {showModal && (
+        <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <div className="modal-dialog">
             <form onSubmit={handleSubmit}>
               <div className="modal-content">
                 <div className="modal-header">
-                  <h5 className="modal-title">
-                    {editingSubject ? "Edit Subject" : "Add Subject"}
-                  </h5>
-                  <button
-                    type="button"
-                    className="btn-close"
-                    onClick={() => setShowModal(false)}
-                  />
+                  <h5 className="modal-title">{editingSubject ? "Edit Subject" : "Add Subject"}</h5>
+                  <button type="button" className="btn-close" onClick={() => setShowModal(false)} />
                 </div>
                 <div className="modal-body">
-                  {["subjectCode", "subjectName", "description", "credits"].map(
-                    (field) => (
-                      <div className="mb-3" key={field}>
-                        <label className="form-label text-capitalize">
-                          {field.replace(/([A-Z])/g, " $1")}
-                        </label>
-                        <input
-                          type={field === "credits" ? "number" : "text"}
-                          className="form-control"
-                          name={field}
-                          value={formData[field]}
-                          onChange={handleInputChange}
-                          required={field !== "description"}
-                        />
-                      </div>
-                    )
-                  )}
-
+                  {["subjectCode", "subjectName", "description", "credits"].map(field => (
+                    <div className="mb-3" key={field}>
+                      <label className="form-label text-capitalize">{field.replace(/([A-Z])/g, ' $1')}</label>
+                      <input
+                        type={field === "credits" ? "number" : "text"}
+                        className="form-control"
+                        name={field}
+                        value={formData[field]}
+                        onChange={handleInputChange}
+                        required={field !== "description"}
+                      />
+                    </div>
+                  ))}
+                     
                   {/* Teacher Dropdown */}
                   <div className="mb-3">
                     <label className="form-label">Assign Teacher</label>
@@ -229,7 +260,7 @@ const handleSubmit = async (e) => {
                       required
                     >
                       <option value="">Select a teacher...</option>
-                      {teachers.map((teacher) => (
+                      {teachers.map(teacher => (
                         <option key={teacher.id} value={teacher.id}>
                           {teacher.fullname}
                         </option>
@@ -255,6 +286,7 @@ const handleSubmit = async (e) => {
         </div>
       )}
 
+      {/* Toast notifications */}
       <ToastContainer position="top-right" autoClose={3000} hideProgressBar />
     </div>
   );
