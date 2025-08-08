@@ -203,10 +203,10 @@ const confirmDelete = (id) => {
                 <td>
                   {(userRole !== 'Teacher' || teacher.username === loggedInUsername) && (
                     <>
-                      <button className="btn btn-sm btn-primary me-2" onClick={() => toast()}>Edit</button>
-                      <button className="btn btn-sm btn-danger me-2" onClick={() => toast()}>Delete</button>
-                      {/* <button className="btn btn-sm btn-primary me-2" onClick={() => openModal(teacher)}>Edit</button>
-                      <button className="btn btn-sm btn-danger me-2" onClick={() => confirmDelete(teacher.id)}>Delete</button> */}
+                      {/* <button className="btn btn-sm btn-primary me-2" onClick={() => toast()}>Edit</button>
+                      <button className="btn btn-sm btn-danger me-2" onClick={() => toast()}>Delete</button> */}
+                      <button className="btn btn-sm btn-primary me-2" onClick={() => openModal(teacher)}>Edit</button>
+                      <button className="btn btn-sm btn-danger me-2" onClick={() => confirmDelete(teacher.id)}>Delete</button>
                     </>
                   )}
                   <button className="btn btn-sm btn-info" onClick={() => toggleSubjects(teacher.id)}>

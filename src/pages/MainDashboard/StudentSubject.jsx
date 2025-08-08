@@ -153,10 +153,10 @@ const { data: subjectData } = await axiosInstance.get('/StudentSubjects');
         <h4><b>Students</b></h4>
         {currentRole !== 'Student' && (
           <>
-            {/* <button className="btn btn-success" onClick={() => setShowAddStudentModal(true)}>Add Student</button> */}
-            <button className="btn btn-success" onClick={() => setShowAddStudentModal(false)}>Add Student</button>
-            {/* <button className="btn btn-info" onClick={() => setShowAssignSubjectsModal(true)}>Assign Subjects</button> */}
-            <button className="btn btn-info" onClick={() => setShowAssignSubjectsModal(false)}>Assign Subjects</button>
+            <button className="btn btn-success" onClick={() => setShowAddStudentModal(true)}>Add Student</button>
+            {/* <button className="btn btn-success" onClick={() => setShowAddStudentModal(false)}>Add Student</button> */}
+            <button className="btn btn-info" onClick={() => setShowAssignSubjectsModal(true)}>Assign Subjects</button>
+            {/* <button className="btn btn-info" onClick={() => setShowAssignSubjectsModal(false)}>Assign Subjects</button> */}
           </>
         )}
       </div>
@@ -178,8 +178,8 @@ const { data: subjectData } = await axiosInstance.get('/StudentSubjects');
                 <td>{student.yearLevel || '-'}</td>
                 <td>
                   {currentRole !== 'Student' && (
-                    <button className="btn btn-sm btn-danger">Delete</button>
-                    // <button className="btn btn-sm btn-danger" onClick={() => handleDeleteStudent(student.id)}>Delete</button>
+                    // <button className="btn btn-sm btn-danger">Delete</button>
+                    <button className="btn btn-sm btn-danger" onClick={() => handleDeleteStudent(student.id)}>Delete</button>
 
                   )}
                   {subjectsMap[student.id] ? (

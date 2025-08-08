@@ -126,12 +126,12 @@ const handleSubmit = async (e) => {
       <h4>
         <b>Subjects</b>
       </h4>
-            <button className="btn btn-success mb-3" onClick={() => toast.info()}>
-        Add Subject
-      </button>
-      {/* <button className="btn btn-success mb-3" onClick={() => openModal()}>
+            {/* <button className="btn btn-success mb-3" onClick={() => toast.info()}>
         Add Subject
       </button> */}
+      <button className="btn btn-success mb-3" onClick={() => openModal()}>
+        Add Subject
+      </button>
       {loading ? (
         <p>Loading...</p>
       ) : (
@@ -155,7 +155,7 @@ const handleSubmit = async (e) => {
                 <td>{sub.credits}</td>
                 <td>{sub.teacherName}</td>
                 <td>
-                  <button
+                  {/* <button
                     className="btn btn-sm btn-primary me-2"
                     onClick={() => toast.info()}
                   >
@@ -166,13 +166,13 @@ const handleSubmit = async (e) => {
                     onClick={() => toast.info()}
                   >
                     Delete
-                  </button>
-                  {/* <button className="btn btn-sm btn-primary me-2" onClick={() => openModal(sub)}>
+                  </button> */}
+                  <button className="btn btn-sm btn-primary me-2" onClick={() => openModal(sub)}>
                     Edit
                   </button>
                   <button className="btn btn-sm btn-danger" onClick={() => handleDelete(sub.id)}>
                     Delete
-                  </button> */}
+                  </button>
                 </td>
               </tr>
             ))}
