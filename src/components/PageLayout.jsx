@@ -1,8 +1,8 @@
-import { useState } from "react";
-import { Layout, Button } from "antd";
+import { useEffect, useState } from "react";
+import { Layout, Button, Drawer } from "antd";
 import { Outlet, useNavigate } from "react-router-dom";
 import { RiLogoutCircleRLine } from "react-icons/ri";
-import { MenuFoldOutlined, MenuUnfoldOutlined } from "@ant-design/icons";
+import { MenuUnfoldOutlined } from "@ant-design/icons";
 
 import Menulist from "./Menulist";
 import loginService from "../../api/loginService";
@@ -10,8 +10,21 @@ import loginService from "../../api/loginService";
 const { Header, Sider, Content } = Layout;
 
 const PageLayout = () => {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(false); // for desktop sidebar
+  const [drawerVisible, setDrawerVisible] = useState(false); // for mobile drawer
+  const [isMobile, setIsMobile] = useState(false);
   const navigate = useNavigate();
+
+  // Handle responsive detection
+  const handleResize = () => {
+    setIsMobile(window.innerWidth < 768);
+  };
+
+  useEffect(() => {
+    handleResize(); // Set on load
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const handleLogout = () => {
     loginService.logout();
@@ -19,62 +32,77 @@ const PageLayout = () => {
   };
 
   return (
-    <Layout
-      style={{
-        minHeight: "100vh",
-        boxShadow: "rgba(0, 0, 0, 0.3) 0px 4px 6px;",
-      }}
-    >
-      <Sider
-        width={280}
-        trigger={null}
-        collapsible
-        collapsed={collapsed}
-        className="box-shadow"
-        style={{ background: "#FCF6F5FF" }}
-      >
-        <div className="demo-logo-vertical" />
-        <Menulist collapsed={collapsed} />
-      </Sider>
+    <Layout style={{ minHeight: "100vh" }}>
+      {/* Desktop Sidebar */}
+      {!isMobile && (
+        <Sider
+          width={280}
+          trigger={null}
+          collapsible
+          collapsed={collapsed}
+          onCollapse={(value) => setCollapsed(value)}
+          style={{
+            background: "#fff",
+            boxShadow: "2px 0 6px rgba(0, 0, 0, 0.1)",
+          }}
+        >
+          <div className="demo-logo-vertical" />
+          <Menulist collapsed={collapsed} />
+        </Sider>
+      )}
+
+      {/* Mobile Drawer */}
+      {isMobile && (
+        <Drawer
+          title="Menu"
+          placement="left"
+          onClose={() => setDrawerVisible(false)}
+          open={drawerVisible}
+          bodyStyle={{ padding: 0 }}
+        >
+          <Menulist collapsed={false} />
+        </Drawer>
+      )}
+
       <Layout>
+        {/* Header */}
         <Header
           style={{
             background: "#2BAE66FF",
             color: "white",
             display: "flex",
             justifyContent: "space-between",
+            alignItems: "center",
+            padding: "0 16px",
           }}
         >
           <Button
             type="text"
-            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-            onClick={() => setCollapsed(!collapsed)}
-            style={{
-              fontSize: "16px",
-              width: 64,
-              height: 64,
-              color: "white",
+            icon={<MenuUnfoldOutlined />}
+            onClick={() => {
+              if (isMobile) {
+                setDrawerVisible(true);
+              } else {
+                setCollapsed(!collapsed);
+              }
             }}
+            style={{ fontSize: 18, color: "white" }}
           />
+
           <Button
             type="text"
             icon={<RiLogoutCircleRLine />}
             onClick={handleLogout}
             style={{
-              fontSize: "23px",
-              marginRight: 20,
-              marginTop: 20,
+              fontSize: 20,
               color: "white",
             }}
           >
-            <span
-              className="logout-text"
-              style={{ fontSize: 15, marginBottom: 5 }}
-            >
-              Logout
-            </span>
+            <span style={{ fontSize: 15, marginLeft: 5 }}>Logout</span>
           </Button>
         </Header>
+
+        {/* Main Content */}
         <Content style={{ padding: 24 }}>
           <Outlet />
         </Content>

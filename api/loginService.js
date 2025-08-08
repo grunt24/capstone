@@ -5,11 +5,16 @@ const loginService = {
     try {
       const response = await axiosInstance.post("/Auth/login/", { username, password });
 
-      // Extract token, username, and role from response
-      const { token, username: userName, role } = response.data;
+      // Destructure the response data, now including id
+      const { token, username: userName, role, fullname, id } = response.data;
 
       if (token) {
-        const userDetails = { userName, role }; // Store user info
+        const userDetails = {
+          id,             // <--- Add this for teacher/user id
+          userName,       
+          fullname,       
+          role
+        };
         localStorage.setItem("token", token);
         localStorage.setItem("userDetails", JSON.stringify(userDetails));
         return { success: true, token, userDetails };
@@ -51,3 +56,4 @@ const loginService = {
 };
 
 export default loginService;
+

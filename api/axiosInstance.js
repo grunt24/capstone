@@ -1,14 +1,18 @@
 import axios from "axios";
 
-const apiAccessPoint = {
-  local: 'https://localhost:7255/api'
+const getApiBaseUrl = () => {
+  const isLocalhost = window.location.hostname === 'localhost';
+  return isLocalhost
+    ? 'https://localhost:7255/api'
+    : 'http://bcasgradesystemapi.runasp.net/api';
 };
 
 const getCurrentToken = () => localStorage.getItem("token");
 
 // Create the Axios instance
 const axiosInstance = axios.create({
-  baseURL: apiAccessPoint.local
+  baseURL: getApiBaseUrl(),
+    timeout: 10000
 });
 
 axiosInstance.interceptors.request.use(

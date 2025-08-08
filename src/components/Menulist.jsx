@@ -1,38 +1,88 @@
 import { useEffect, useState } from "react";
 import { Menu } from "antd";
-import { MdPayments } from "react-icons/md";
 import { HomeFilled } from "@ant-design/icons";
 import { Link } from "react-router-dom";
 
 const SidebarMenu = ({ collapsed }) => {
   const [userName, setUserName] = useState("");
+  const [role, setRole] = useState("");
 
   useEffect(() => {
     const userDetails = localStorage.getItem("userDetails");
     if (userDetails) {
-      const { userName } = JSON.parse(userDetails);
-      setUserName(userName);
+      const parsed = JSON.parse(userDetails);
+      setUserName(parsed.userName);
+      setRole(parsed.role);
     }
   }, []);
 
-  return (
-    <Menu theme="light" mode="inline" style={{ minHeight: "100vh" }}>
-      <Menu.Item key="home1" icon={<MdPayments />} style={{ marginTop: 10 }}>
-        <p style={{ fontWeight: 700 }}>BCAS Grade Portal</p>
-      </Menu.Item>
+  // Menu for all roles
+  const menuItemsByRole = {
+    Student: [
+      {
+        key: "students",
+        icon: <HomeFilled />,
+        label: <Link to="/students">Students</Link>,
+      },
+    ],
+    Teacher: [
+      {
+        key: "dashboard",
+        icon: <HomeFilled />,
+        label: <Link to="/main-dashboard">Dashboard</Link>,
+      },
+      {
+        key: "students",
+        icon: <HomeFilled />,
+        label: <Link to="/students">Student Subjects</Link>,
+      },
+    ],
+    Admin: [
+      {
+        key: "dashboard",
+        icon: <HomeFilled />,
+        label: <Link to="/main-dashboard">Dashboard</Link>,
+      },
+      {
+        key: "subjects",
+        icon: <HomeFilled />,
+        label: <Link to="/subjects">Subjects</Link>,
+      },
+      {
+        key: "teachers",
+        icon: <HomeFilled />,
+        label: <Link to="/teachers">Teachers</Link>,
+      },
+      {
+        key: "students",
+        icon: <HomeFilled />,
+        label: <Link to="/students">Students</Link>,
+      },
+    ],
+  };
 
+  const items = menuItemsByRole[role] || [];
+
+  return (
+    <>
       {!collapsed && userName && (
-        <div className="greeting-container">
+        <div className="greeting-container" style={{ padding: "10px 16px" }}>
           <div className="greeting-content">
-            <span>Hello, </span><span className="username">{userName}!</span>
+            <span>Hello, </span>
+            <span className="username" style={{ fontWeight: 600 }}>
+              {userName}.
+            </span>
           </div>
         </div>
       )}
 
-      <Menu.Item key="home2" icon={<HomeFilled />}>
-        <Link to="/dashboard">Dashboard</Link>
-      </Menu.Item>
-    </Menu>
+      <Menu
+        theme="light"
+        mode="inline"
+        style={{ minHeight: "auto" }}
+        items={items}
+      />
+    </>
   );
 };
 
