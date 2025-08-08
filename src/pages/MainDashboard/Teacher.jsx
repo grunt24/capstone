@@ -143,6 +143,7 @@ const handleSubmit = async (e) => {
 };
 
 
+
 const confirmDelete = (id) => {
   toast.info(() => (
     <div>
@@ -179,12 +180,12 @@ const confirmDelete = (id) => {
       <h4><b>Teachers</b></h4>
 
       {userRole !== 'Teacher' && (
-                <button className="btn btn-success mb-3" onClick={() => toast()}>
-          Add Teacher
-        </button>
-        // <button className="btn btn-success mb-3" onClick={() => openModal()}>
+        //         <button className="btn btn-success mb-3" onClick={() => toast()}>
         //   Add Teacher
         // </button>
+        <button className="btn btn-success mb-3" onClick={() => openModal()}>
+          Add Teacher
+        </button>
       )}
 
       <table className="table table-bordered table-hover">
