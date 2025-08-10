@@ -36,6 +36,11 @@ const SidebarMenu = ({ collapsed }) => {
         icon: <HomeFilled />,
         label: <Link to="/students">Student Subjects</Link>,
       },
+                  {
+        key: "teacherGrading",
+        icon: <HomeFilled />,
+        label: <Link to="/teacher-grading">Input Grades</Link>,
+      },
     ],
     Admin: [
       {
@@ -57,6 +62,11 @@ const SidebarMenu = ({ collapsed }) => {
         key: "students",
         icon: <HomeFilled />,
         label: <Link to="/students">Students</Link>,
+      },
+            {
+        key: "teacherGrading",
+        icon: <HomeFilled />,
+        label: <Link to="/teacher-grading">Input Grades</Link>,
       },
     ],
   };

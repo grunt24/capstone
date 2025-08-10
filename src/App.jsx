@@ -9,6 +9,7 @@ import './components/Menulist.css';
 import Subjects from "./pages/MainDashboard/Subjects.jsx";
 import Teacher from "./pages/MainDashboard/Teacher.jsx";
 import StudentSubject from "./pages/MainDashboard/StudentSubject.jsx";
+import TeacherGrading from "./pages/MainDashboard/TeacherGrading.jsx";
 
 const router = createBrowserRouter([
   {
@@ -22,6 +23,8 @@ const router = createBrowserRouter([
           { path: "/subjects", element: <Subjects /> },
           { path: "/teachers", element: <Teacher /> },
           { path: "/students", element: <StudentSubject /> },
+          { path: "/teacher-grading", element: <TeacherGrading /> },
+
         ],
       }
     ],

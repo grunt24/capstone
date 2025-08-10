@@ -56,8 +56,9 @@ useEffect(() => {
   return (
     <>
       <h2>User Overview</h2>
+
       <Row gutter={[16, 16]}>
-        <Col xs={24} sm={12} md={6}>
+        {/* <Col xs={24} sm={12} md={6}>
           <Card title="Admins" bordered={false}>
             {roleCounts.Admin || 0}
           </Card>
@@ -71,7 +72,7 @@ useEffect(() => {
           <Card title="Students" bordered={false}>
             {roleCounts.Student || 0}
           </Card>
-        </Col>
+        </Col> */}
         <Col xs={24} sm={12} md={6}>
           <Card title="Valid Grades" bordered={false}>
             {gradeCounts.valid}
@@ -93,7 +94,7 @@ useEffect(() => {
         ))}
       </Row>
 
-      {/* <div style={{ width: '100%', height: 400, marginTop: 40 }}>
+      <div style={{ width: '100%', height: 400, marginTop: 40 }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 20, right: 30, bottom: 5, left: 0 }}>
             <CartesianGrid strokeDasharray="3 3" />
@@ -103,7 +104,7 @@ useEffect(() => {
             <Bar dataKey="count" fill="#8884d8" />
           </BarChart>
         </ResponsiveContainer>
-      </div> */}
+      </div>
 
       <Card title="Student Subjects" className="mt-4" bordered={false}>
         <StudentSubject />
