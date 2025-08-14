@@ -186,6 +186,12 @@ function Teacher() {
     (currentPage - 1) * itemsPerPage,
     itemsPerPage === 'All' ? filteredTeachers.length : currentPage * itemsPerPage
   );
+
+  // 🔒 Prevent rendering for Teacher or User roles
+  if (userRole === 'Teacher' || userRole === 'User') {
+    return null; // Or return <p>Access denied.</p>
+  }
+
   return (
     <div>
       {userRole !== 'Teacher' && (

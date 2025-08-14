@@ -124,7 +124,7 @@ function StudentSubject() {
     const handleAddStudent = async e => {
         e.preventDefault();
         try {
-            await axiosInstance.post('/Auth/register-student', {
+            await axiosInstance.post('/Auth/create-student', {
                 username: formData.username,
                 password: formData.password,
                 fullname: formData.fullname,

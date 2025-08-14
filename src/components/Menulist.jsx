@@ -68,6 +68,43 @@ const SidebarMenu = ({ collapsed }) => {
         icon: <HomeFilled />,
         label: <Link to="/teacher-grading">Input Grades</Link>,
       },
+            {
+        key: "events",
+        icon: <HomeFilled />,
+        label: <Link to="/events">Events</Link>,
+      },
+    ],
+        Superadmin: [
+      {
+        key: "dashboard",
+        icon: <HomeFilled />,
+        label: <Link to="/main-dashboard">Dashboard</Link>,
+      },
+      {
+        key: "subjects",
+        icon: <HomeFilled />,
+        label: <Link to="/subjects">Subjects</Link>,
+      },
+      {
+        key: "teachers",
+        icon: <HomeFilled />,
+        label: <Link to="/teachers">Teachers</Link>,
+      },
+      {
+        key: "students",
+        icon: <HomeFilled />,
+        label: <Link to="/students">Students</Link>,
+      },
+            {
+        key: "teacherGrading",
+        icon: <HomeFilled />,
+        label: <Link to="/teacher-grading">Input Grades</Link>,
+      },
+      {
+        key: "events",
+        icon: <HomeFilled />,
+        label: <Link to="/events">Events</Link>,
+      },
     ],
   };
 
