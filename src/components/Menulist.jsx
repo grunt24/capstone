@@ -73,6 +73,13 @@ const SidebarMenu = ({ collapsed }) => {
         icon: <RightOutlined />,
         label: <Link to="/events">Events</Link>,
       },
+            {
+        key: "midterm",
+        icon: <RightOutlined />,
+        label: <Link to="/midterm">Student Midterm Grades</Link>,
+      },      
+      {key: "finals",icon: <RightOutlined />,label: <Link to="/finals">Student Final Grades</Link>},
+      {key: "viewing",icon: <RightOutlined />,label: <Link to="/view-grades">View Grades</Link>},
     ],
     Superadmin: [
       {
