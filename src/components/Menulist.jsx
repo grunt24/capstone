@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Menu } from "antd";
-import { HomeFilled } from "@ant-design/icons";
+import { HomeFilled, RightOutlined } from "@ant-design/icons";
 import { Link } from "react-router-dom";
 
 const SidebarMenu = ({ collapsed }) => {
@@ -21,7 +21,7 @@ const SidebarMenu = ({ collapsed }) => {
     Student: [
       {
         key: "students",
-        icon: <HomeFilled />,
+        icon: <RightOutlined />,
         label: <Link to="/students">Students</Link>,
       },
     ],
@@ -33,12 +33,12 @@ const SidebarMenu = ({ collapsed }) => {
       },
       {
         key: "students",
-        icon: <HomeFilled />,
+        icon: <RightOutlined />,
         label: <Link to="/students">Student Subjects</Link>,
       },
-                  {
+      {
         key: "teacherGrading",
-        icon: <HomeFilled />,
+        icon: <RightOutlined />,
         label: <Link to="/teacher-grading">Input Grades</Link>,
       },
     ],
@@ -50,31 +50,31 @@ const SidebarMenu = ({ collapsed }) => {
       },
       {
         key: "subjects",
-        icon: <HomeFilled />,
+        icon: <RightOutlined />,
         label: <Link to="/subjects">Subjects</Link>,
       },
       {
         key: "teachers",
-        icon: <HomeFilled />,
+        icon: <RightOutlined />,
         label: <Link to="/teachers">Teachers</Link>,
       },
       {
         key: "students",
-        icon: <HomeFilled />,
+        icon: <RightOutlined />,
         label: <Link to="/students">Students</Link>,
       },
-            {
+      {
         key: "teacherGrading",
-        icon: <HomeFilled />,
+        icon: <RightOutlined />,
         label: <Link to="/teacher-grading">Input Grades</Link>,
       },
-            {
+      {
         key: "events",
-        icon: <HomeFilled />,
+        icon: <RightOutlined />,
         label: <Link to="/events">Events</Link>,
       },
     ],
-        Superadmin: [
+    Superadmin: [
       {
         key: "dashboard",
         icon: <HomeFilled />,
@@ -82,29 +82,36 @@ const SidebarMenu = ({ collapsed }) => {
       },
       {
         key: "subjects",
-        icon: <HomeFilled />,
+        icon: <RightOutlined />,
         label: <Link to="/subjects">Subjects</Link>,
       },
       {
         key: "teachers",
-        icon: <HomeFilled />,
+        icon: <RightOutlined />,
         label: <Link to="/teachers">Teachers</Link>,
       },
       {
         key: "students",
-        icon: <HomeFilled />,
+        icon: <RightOutlined />,
         label: <Link to="/students">Students</Link>,
       },
-            {
-        key: "teacherGrading",
-        icon: <HomeFilled />,
-        label: <Link to="/teacher-grading">Input Grades</Link>,
-      },
+      // {
+      //   key: "teacherGrading",
+      //   icon: <RightOutlined />,
+      //   label: <Link to="/teacher-grading">Input Grades</Link>,
+      // },
+      // {
+      //   key: "events",
+      //   icon: <RightOutlined />,
+      //   label: <Link to="/events">Events</Link>,
+      // },
       {
-        key: "events",
-        icon: <HomeFilled />,
-        label: <Link to="/events">Events</Link>,
-      },
+        key: "midterm",
+        icon: <RightOutlined />,
+        label: <Link to="/midterm">Student Midterm Grades</Link>,
+      },      
+      {key: "finals",icon: <RightOutlined />,label: <Link to="/finals">Student Final Grades</Link>},
+      {key: "viewing",icon: <RightOutlined />,label: <Link to="/view-grades">View Grades</Link>},
     ],
   };
 
