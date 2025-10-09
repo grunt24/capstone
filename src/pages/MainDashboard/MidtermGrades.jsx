@@ -12,6 +12,7 @@ import {
   Form,
   Input,
   Select,
+  Spin
 } from "antd";
 import {
   UploadOutlined,
@@ -197,6 +198,21 @@ const handleManualInsert = async (values) => {
       dataIndex: "gradePointEquivalent",
       key: "gradePointEquivalent",
     },
+        {
+      title: "AY",
+      dataIndex: "academicYear",
+      key: "academicYear",
+    },
+            {
+      title: "Semester",
+      dataIndex: "semester",
+      key: "semester",
+    },
+                {
+      title: "Subject",
+      dataIndex: "subjectName",
+      key: "subjectName",
+    },
     {
       title: "Actions",
       key: "actions",
@@ -235,9 +251,13 @@ const handleManualInsert = async (values) => {
 
   return (
     <div>
+        <Spin spinning={loading} tip="Loading...">
+    <div>
       <div style={{ marginBottom: "20px" }}>
         <GradePercentage />
       </div>
+          </div>
+  </Spin>
       <div style={{ marginBottom: 16, display: "flex", gap: 10 }}>
         <Upload
           customRequest={handleUpload}

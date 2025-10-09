@@ -12,6 +12,7 @@ import {
   Form,
   Input,
   Select,
+  Spin 
 } from "antd";
 import {
   UploadOutlined,
@@ -195,6 +196,21 @@ function FinalsGradesTableContent() {
       dataIndex: "gradePointEquivalent",
       key: "gradePointEquivalent",
     },
+            {
+      title: "AY",
+      dataIndex: "academicYear",
+      key: "academicYear",
+    },
+            {
+      title: "Semester",
+      dataIndex: "semester",
+      key: "semester",
+    },
+                {
+      title: "Subject",
+      dataIndex: "subjectName",
+      key: "subjectName",
+    },
     {
       title: "Actions",
       key: "actions",
@@ -237,6 +253,9 @@ function FinalsGradesTableContent() {
   ];
 
   return (
+      <Spin spinning={loading} tip="Loading...">
+
+
     <div>
       <div style={{ marginBottom: "20px" }}>
         <GradePercentage />
@@ -593,6 +612,7 @@ function FinalsGradesTableContent() {
       </Modal>
       <ToastContainer position="top-right" autoClose={3000} hideProgressBar />
     </div>
+          </Spin>
   );
 }
 

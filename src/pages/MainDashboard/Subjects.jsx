@@ -176,6 +176,7 @@ function Subjects() {
         <table className="table table-bordered table-hover">
           <thead className="table-light">
             <tr>
+              <th>Code</th>
               <th onClick={() => setSortAsc(prev => !prev)} style={{ cursor: 'pointer' }}>
                 Name {sortAsc ? '▲' : '▼'}
               </th>
@@ -188,6 +189,7 @@ function Subjects() {
           <tbody>
             {displayedSubjects.map((sub) => (
               <tr key={sub.id}>
+                <td>{sub.subjectCode}</td>
                 <td>{sub.subjectName}</td>
                 <td>{sub.description || "—"}</td>
                 <td>{sub.credits}</td>

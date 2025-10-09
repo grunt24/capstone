@@ -24,6 +24,7 @@ const SidebarMenu = ({ collapsed }) => {
         icon: <RightOutlined />,
         label: <Link to="/students">Students</Link>,
       },
+                  {key: "viewing",icon: <RightOutlined />,label: <Link to="/view-grades">View Grades</Link>},
     ],
     Teacher: [
       {
@@ -31,15 +32,27 @@ const SidebarMenu = ({ collapsed }) => {
         icon: <HomeFilled />,
         label: <Link to="/main-dashboard">Dashboard</Link>,
       },
-      {
-        key: "students",
+                  {
+        key: "midterm",
         icon: <RightOutlined />,
-        label: <Link to="/students">Student Subjects</Link>,
-      },
+        label: <Link to="/midterm">Student Midterm Grades</Link>,
+      },      
+      {key: "finals",icon: <RightOutlined />,label: <Link to="/finals">Student Final Grades</Link>},
+            {key: "viewing",icon: <RightOutlined />,label: <Link to="/view-grades">View Grades</Link>},
+      // {
+      //   key: "students",
+      //   icon: <RightOutlined />,
+      //   label: <Link to="/students">Student Subjects</Link>,
+      // },
+      // {
+      //   key: "teacherGrading",
+      //   icon: <RightOutlined />,
+      //   label: <Link to="/teacher-grading">Input Grades</Link>,
+      // },
       {
-        key: "teacherGrading",
+        key: "myStudents",
         icon: <RightOutlined />,
-        label: <Link to="/teacher-grading">Input Grades</Link>,
+        label: <Link to="/teacher-students">My Students</Link>,
       },
     ],
     Admin: [
@@ -63,11 +76,11 @@ const SidebarMenu = ({ collapsed }) => {
         icon: <RightOutlined />,
         label: <Link to="/students">Students</Link>,
       },
-      {
-        key: "teacherGrading",
-        icon: <RightOutlined />,
-        label: <Link to="/teacher-grading">Input Grades</Link>,
-      },
+      // {
+      //   key: "teacherGrading",
+      //   icon: <RightOutlined />,
+      //   label: <Link to="/teacher-grading">Input Grades</Link>,
+      // },
       {
         key: "events",
         icon: <RightOutlined />,

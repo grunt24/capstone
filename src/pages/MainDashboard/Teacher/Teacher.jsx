@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import axiosInstance from '../../../api/axiosInstance';
-import loginService from '../../../api/loginService';
+import axiosInstance from '../../../../api/axiosInstance';
+import loginService from '../../../../api/loginService';
 
 function Teacher() {
   const [teachers, setTeachers] = useState([]);

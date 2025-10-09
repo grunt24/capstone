@@ -1,22 +1,38 @@
 import React, { useEffect, useState } from 'react';
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer
+  BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, Legend
 } from 'recharts';
 import { Card, Row, Col } from 'antd';
 import StudentSubject from './StudentSubject';
-import Teacher from './Teacher';
+import Teacher from './Teacher/Teacher';
 import Subjects from './Subjects';
 import UserEvents from './UserEvents';
 import axiosInstance from '../../../api/axiosInstance';
 import dummyGrades from '../../../api/dummyGrades';
 import loginService from '../../../api/loginService'; // import your loginService
 
+
+
 function MainDashboard() {
   const [data, setData] = useState([]);
   const [roleCounts, setRoleCounts] = useState({});
   const [gradeCounts, setGradeCounts] = useState({ valid: 0, invalid: 0 });
   const [departmentCounts, setDepartmentCounts] = useState({});
+  const [studentGroupData, setStudentGroupData] = useState([]); // NEW: grouped students by year + dept
   const [userRole, setUserRole] = useState('');
+  const [groupedChartData, setGroupedChartData] = useState([]);
+const [yearLevels, setYearLevels] = useState([]); // for dynamic bar keys
+const [gradeInfo, setGradeInfo] = useState({
+  midtermCount: 0,
+  finalCount: 0,
+  currentSemester: '',
+  currentAcademicYear: '',
+});
+
+
+const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7f50', '#a83279'];
+
+const getColor = (index) => COLORS[index % COLORS.length];
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -30,11 +46,44 @@ function MainDashboard() {
         // Fetch all users
         const { data: users } = await axiosInstance.get('/Auth/all-users');
 
+        // Fetch students grouped by year & department
+        const { data: studentGroup } = await axiosInstance.get('/Auth/students-by-year-department');
+        setStudentGroupData(studentGroup);
+
+// Transform the grouped student data to match Recharts format
+const departmentYearMap = {};
+const allYearLevels = new Set();
+
+studentGroup.forEach(group => {
+  const year = group.yearLevel;
+  allYearLevels.add(year);
+
+  group.departments.forEach(dept => {
+    if (!departmentYearMap[dept.department]) {
+      departmentYearMap[dept.department] = { department: dept.department };
+    }
+    departmentYearMap[dept.department][year] = dept.count;
+  });
+});
+
+const { data: gradeResponse } = await axiosInstance.get('/GradeCalculation/grades-count');
+
+if (gradeResponse.success) {
+  setGradeInfo(gradeResponse.data);
+}
+
+
+const chartData = Object.values(departmentYearMap);
+
+setGroupedChartData(chartData);
+setYearLevels(Array.from(allYearLevels));
+
+
         const roles = { Admin: 0, Teacher: 0, Student: 0 };
         const departments = {};
 
         users.forEach(user => {
-          if (user.role === 'Superadmin') return; // Skip superadmins
+          if (user.role === 'Superadmin') return;
           const role = user.role;
           roles[role] = (roles[role] || 0) + 1;
 
@@ -63,20 +112,26 @@ function MainDashboard() {
 
   return (
     <>
-      <h2>User Overview</h2>
+<h2>Overview for  {gradeInfo.currentAcademicYear || 'N/A'}, {gradeInfo.currentSemester || 'N/A'}</h2>
+{/* <p>
+  <strong>Semester:</strong> <br />
+  <strong>Academic Year:</strong> {gradeInfo.currentAcademicYear || 'N/A'}
+</p> */}
+
+<Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+  <Col xs={24} sm={12} md={6}>
+    <Card title="Midterm Uploaded Grade Count" bordered={false}>
+      {gradeInfo.midtermCount}
+    </Card>
+  </Col>
+  <Col xs={24} sm={12} md={6}>
+    <Card title="Finals Uploaded Grade Count" bordered={false}>
+      {gradeInfo.finalCount}
+    </Card>
+  </Col>
+</Row>
 
       <Row gutter={[16, 16]}>
-        <Col xs={24} sm={12} md={6}>
-          <Card title="Valid Grades" bordered={false}>
-            {gradeCounts.valid}
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card title="Invalid Grades" bordered={false}>
-            {gradeCounts.invalid}
-          </Card>
-        </Col>
-
         {Object.keys(departmentCounts).map(dept => (
           <Col key={dept} xs={24} sm={12} md={6}>
             <Card title={dept} bordered={false}>
@@ -85,6 +140,33 @@ function MainDashboard() {
           </Col>
         ))}
       </Row>
+
+<h3 style={{ marginTop: 40 }}>Student Count by Department and Year</h3>
+<div style={{ width: '100%', height: 400 }}>
+  <ResponsiveContainer width="100%" height="100%">
+    <BarChart
+      data={groupedChartData}
+      margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
+    >
+      <CartesianGrid strokeDasharray="3 3" />
+      <XAxis dataKey="department" />
+      <YAxis allowDecimals={false} />
+      <Tooltip />
+      <Legend />
+      {yearLevels.map((year, index) => (
+        <Bar
+          key={year}
+          dataKey={year}
+          fill={getColor(index)}
+          name={year}
+        />
+      ))}
+    </BarChart>
+  </ResponsiveContainer>
+</div>
+
+
+
 
       {/* 50:50 Layout */}
       <Row gutter={[16, 16]} style={{ marginTop: 40 }}>

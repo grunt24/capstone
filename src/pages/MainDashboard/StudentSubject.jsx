@@ -42,62 +42,77 @@ function StudentSubject() {
             const userDetails = loginService.getUserDetails();
             setCurrentRole(userDetails.role || '');
 
-            // Fetch all students.
+            // ✅ Fetch all students
             const { data: allStudents } = await axiosInstance.get('/Auth/all-students');
 
-            // Filter students based on the current user's role.
-            const filteredStudents = userDetails.role === 'Student'
-                ? allStudents.filter(s => s.username === userDetails.userName)
-                : allStudents;
+            // ✅ Filter for logged-in student if role is Student
+            const filteredStudents =
+                userDetails.role === 'Student'
+                    ? allStudents.filter((s) => s.username === userDetails.userName)
+                    : allStudents;
 
             setStudents(filteredStudents);
 
-            // Fetch all student-subject assignments.
+            // ✅ Fetch all student-subject assignments
             const { data: studentSubjectsData } = await axiosInstance.get('/StudentSubjects');
-            
-            // Fetch grades for all subjects concurrently.
-            // First, get all unique subject IDs from the student subjects data.
-            const uniqueSubjectIds = new Set();
-            studentSubjectsData.forEach(s => {
-                s.subjects.forEach(sub => uniqueSubjectIds.add(sub.subjectId));
-            });
-            const subjectIdArray = Array.from(uniqueSubjectIds);
 
-            // Create an array of promises to fetch grades for each unique subject.
-            const gradePromises = subjectIdArray.map(subjectId =>
-                axiosInstance.get(`/Grades/subject/${subjectId}`).catch(error => {
-                    console.error(`Failed to fetch grades for subject ${subjectId}:`, error);
-                    return { data: [] }; // Return an empty array on error to prevent breaking Promise.all.
-                })
-            );
+            let map = {};
 
-            // Wait for all grade requests to complete.
-            const gradeResults = await Promise.all(gradePromises);
-            const gradesMap = {};
-            gradeResults.forEach((res, index) => {
-                const subjectId = subjectIdArray[index];
-                gradesMap[subjectId] = res.data;
-            });
-            
-            // Build the subjectsMap with fetched grades.
-            const map = studentSubjectsData.reduce((acc, s) => {
-                acc[s.userId] = s.subjects.map(sub => {
-                    const studentGrades = (gradesMap[sub.subjectId] || []).find(g => g.studentId === s.userId);
-                    return {
-                        ...sub,
-                        mainGrade: studentGrades?.mainGrade || null,
-                        calculatedGrade: studentGrades?.calculatedGrade || null,
-                        scores: studentGrades?.scores || []
-                    };
+            if (userDetails.role !== 'Student') {
+                // ✅ For Teacher/Admin — Fetch grades normally
+                const uniqueSubjectIds = new Set();
+                studentSubjectsData.forEach((s) => {
+                    s.subjects.forEach((sub) => uniqueSubjectIds.add(sub.subjectId));
                 });
-                return acc;
-            }, {});
+
+                const subjectIdArray = Array.from(uniqueSubjectIds);
+
+                const gradePromises = subjectIdArray.map((subjectId) =>
+                    axiosInstance.get(`/Grades/subject/${subjectId}`).catch((error) => {
+                        console.error(`Failed to fetch grades for subject ${subjectId}:`, error);
+                        return { data: [] };
+                    })
+                );
+
+                const gradeResults = await Promise.all(gradePromises);
+                const gradesMap = {};
+                gradeResults.forEach((res, index) => {
+                    const subjectId = subjectIdArray[index];
+                    gradesMap[subjectId] = res.data;
+                });
+
+                map = studentSubjectsData.reduce((acc, s) => {
+                    acc[s.userId] = s.subjects.map((sub) => {
+                        const studentGrades = (gradesMap[sub.subjectId] || []).find(
+                            (g) => g.studentId === s.userId
+                        );
+                        return {
+                            ...sub,
+                            mainGrade: studentGrades?.mainGrade || null,
+                            calculatedGrade: studentGrades?.calculatedGrade || null,
+                            scores: studentGrades?.scores || [],
+                        };
+                    });
+                    return acc;
+                }, {});
+            } else {
+                // ✅ For Student — Skip grade fetching (avoid 403)
+                map = studentSubjectsData.reduce((acc, s) => {
+                    acc[s.userId] = s.subjects.map((sub) => ({
+                        ...sub,
+                        mainGrade: null,
+                        calculatedGrade: null,
+                        scores: [],
+                    }));
+                    return acc;
+                }, {});
+            }
+
             setSubjectsMap(map);
 
-            // Fetch all available subjects for the assignment modal.
+            // ✅ Fetch all available subjects for modal use
             const { data: availData } = await axiosInstance.get('/Subjects');
             setAvailableSubjects(availData);
-
         } catch (err) {
             console.error('Error fetching data:', err);
             toast.error('Failed to load student or subject data.');
@@ -106,7 +121,6 @@ function StudentSubject() {
         }
     };
 
-    // Fetch data on initial component mount.
     useEffect(() => {
         fetchStudentsAndSubjects();
     }, []);
@@ -268,6 +282,7 @@ function StudentSubject() {
                             </th>
                             <th>Department</th>
                             <th>Year Level</th>
+                            <th>Subjects</th>
                             <th style={{ width: '200px' }}>Action</th>
                         </tr>
                     </thead>
@@ -279,15 +294,22 @@ function StudentSubject() {
                                     <td>{student.department || '-'}</td>
                                     <td>{student.yearLevel || '-'}</td>
                                     <td>
+    {subjectsMap[student.id] && subjectsMap[student.id].length > 0 ? (
+        <ul className="list-unstyled mb-0">
+            {subjectsMap[student.id].map(sub => (
+                <li key={sub.subjectId}>
+                    <strong>{sub.subjectName}</strong> ({sub.subjectCode}) – <em>{sub.teacherName}</em>
+                </li>
+            ))}
+        </ul>
+    ) : (
+        <span className="text-muted">No subjects</span>
+    )}
+</td>
+
+                                    <td>
                                         {currentRole !== 'Student' && (
                                             <button className="btn btn-sm btn-danger" onClick={() => confirmDelete(student.id)}>Delete</button>
-                                        )}
-                                        {subjectsMap[student.id] && subjectsMap[student.id].length > 0 ? (
-                                            <button className="btn btn-sm btn-primary ms-2" onClick={() => toggleDetails(student.id)}>
-                                                {expandedUserId === student.id ? 'Hide Subjects' : 'View Grades'}
-                                            </button>
-                                        ) : (
-                                            <span className="text-muted ms-2">No subjects</span>
                                         )}
                                     </td>
                                 </tr>

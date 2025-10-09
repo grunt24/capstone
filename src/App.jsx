@@ -7,13 +7,14 @@ import PageLayout from './components/PageLayout.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import './components/Menulist.css';
 import Subjects from "./pages/MainDashboard/Subjects.jsx";
-import Teacher from "./pages/MainDashboard/Teacher.jsx";
+import Teacher from "./pages/MainDashboard/Teacher/Teacher.jsx";
 import StudentSubject from "./pages/MainDashboard/StudentSubject.jsx";
 import TeacherGrading from "./pages/MainDashboard/TeacherGrading.jsx";
 import UserEvents from "./pages/MainDashboard/UserEvents.jsx";
 import MidtermGrades from "./pages/MainDashboard/MidtermGrades.jsx";
 import FinalGrade from "./pages/MainDashboard/FinalGrades.jsx";
 import ViewingOfGrades from "./pages/MainDashboard/ViewingOfGrades.jsx";
+import TeacherStudents from "./pages/MainDashboard/Teacher/TeacherStudents.jsx";
 
 const router = createBrowserRouter([
   {
@@ -32,8 +33,7 @@ const router = createBrowserRouter([
           { path: "/midterm", element: <MidtermGrades /> },
           { path: "/finals", element: <FinalGrade /> },
           { path: "/view-grades", element: <ViewingOfGrades /> },
-
-
+          { path: "/teacher-students", element: <TeacherStudents /> },
         ],
       }
     ],
