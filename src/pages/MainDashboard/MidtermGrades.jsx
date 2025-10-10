@@ -172,6 +172,11 @@ const handleManualInsert = async (values) => {
 
   // Table columns
   const columns = [
+        {
+      title: "Student Number",
+      dataIndex: "studentNumber",
+      key: "studentNumber",
+    },
     {
       title: "Name",
       dataIndex: "studentFullName",

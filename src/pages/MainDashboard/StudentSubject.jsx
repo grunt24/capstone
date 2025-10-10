@@ -277,6 +277,7 @@ function StudentSubject() {
                 <table className="table table-bordered table-hover mt-3">
                     <thead className="table-light">
                         <tr>
+                            <th>Student Number</th>
                             <th onClick={() => setSortAsc(prev => !prev)} style={{ cursor: 'pointer' }}>
                                 Full Name {sortAsc ? '▲' : '▼'}
                             </th>
@@ -290,6 +291,7 @@ function StudentSubject() {
                         {displayedStudents.map(student => (
                             <React.Fragment key={student.id}>
                                 <tr>
+                                    <td>{student.studentNumber}</td>
                                     <td>{student.fullname}</td>
                                     <td>{student.department || '-'}</td>
                                     <td>{student.yearLevel || '-'}</td>

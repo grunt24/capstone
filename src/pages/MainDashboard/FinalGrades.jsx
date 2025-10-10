@@ -170,6 +170,11 @@ function FinalsGradesTableContent() {
 
   // Table columns
   const columns = [
+            {
+      title: "Student Number",
+      dataIndex: "studentNumber",
+      key: "studentNumber",
+    },
     {
       title: "Name",
       dataIndex: "studentFullName",
