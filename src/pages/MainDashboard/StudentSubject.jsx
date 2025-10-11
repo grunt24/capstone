@@ -139,6 +139,7 @@ function StudentSubject() {
         e.preventDefault();
         try {
             await axiosInstance.post('/Auth/create-student', {
+                studentNumber: formData.studentNumber,
                 username: formData.username,
                 password: formData.password,
                 fullname: formData.fullname,
@@ -148,7 +149,7 @@ function StudentSubject() {
             });
             toast.success('Student added successfully!');
             setShowAddStudentModal(false);
-            setFormData({ username: '', password: '', fullname: '', department: '', yearLevel: '' });
+            setFormData({ studentNumber: '', username: '', password: '', fullname: '', department: '', yearLevel: '' });
             fetchStudentsAndSubjects();
         } catch (err) {
             console.error(err);
@@ -389,52 +390,84 @@ function StudentSubject() {
             </div>
 
             {/* Add Student Modal */}
-            {showAddStudentModal && (
-                <div className="modal show d-block" tabIndex="-1" role="dialog" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                    <div className="modal-dialog" role="document">
-                        <form onSubmit={handleAddStudent}>
-                            <div className="modal-content">
-                                <div className="modal-header">
-                                    <h5 className="modal-title">Add New Student</h5>
-                                    <button type="button" className="btn-close" onClick={() => setShowAddStudentModal(false)} aria-label="Close" />
-                                </div>
-                                <div className="modal-body">
-                                    {['username', 'password', 'fullname'].map(f => (
-                                        <div className="mb-3" key={f}>
-                                            <label className="form-label text-capitalize">{f}</label>
-                                            <input type={f === 'password' ? 'password' : 'text'} className="form-control" name={f} value={formData[f]} onChange={handleInputChange} required />
-                                        </div>
-                                    ))}
-                                    <div className="mb-3">
-                                        <label className="form-label">Department</label>
-                                        <div className="btn-group d-flex flex-wrap gap-2">
-                                            {['BSBA', 'BSIT', 'BSA', 'BSED'].map(dept => (
-                                                <button type="button" key={dept} className={`btn ${formData.department === dept ? 'btn-primary' : 'btn-outline-primary'} rounded-pill`} onClick={() => setFormData(prev => ({ ...prev, department: dept }))}>
-                                                    {dept}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <div className="mb-3">
-                                        <label className="form-label">Year Level</label>
-                                        <div className="btn-group d-flex flex-wrap gap-2">
-                                            {['1st year', '2nd year', '3rd year', '4th year'].map(year => (
-                                                <button type="button" key={year} className={`btn ${formData.yearLevel === year ? 'btn-primary' : 'btn-outline-primary'} rounded-pill`} onClick={() => setFormData(prev => ({ ...prev, yearLevel: year }))}>
-                                                    {year}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="modal-footer">
-                                    <button type="submit" className="btn btn-primary">Add Student</button>
-                                    <button type="button" className="btn btn-secondary" onClick={() => setShowAddStudentModal(false)}>Cancel</button>
-                                </div>
+{showAddStudentModal && (
+    <div className="modal show d-block" tabIndex="-1" role="dialog" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+        <div className="modal-dialog" role="document">
+            <form onSubmit={handleAddStudent}>
+                <div className="modal-content">
+                    <div className="modal-header">
+                        <h5 className="modal-title">Add New Student</h5>
+                        <button type="button" className="btn-close" onClick={() => setShowAddStudentModal(false)} aria-label="Close" />
+                    </div>
+                    <div className="modal-body">
+                        {/* Student Number input */}
+                        <div className="mb-3">
+                            <label className="form-label">Student Number</label>
+                            <input
+                                type="text"
+                                className="form-control"
+                                name="studentNumber"
+                                value={formData.studentNumber || ''}
+                                onChange={handleInputChange}
+                                required
+                            />
+                        </div>
+
+                        {/* Existing inputs */}
+                        {['username', 'password', 'fullname'].map(f => (
+                            <div className="mb-3" key={f}>
+                                <label className="form-label text-capitalize">{f}</label>
+                                <input
+                                    type={f === 'password' ? 'password' : 'text'}
+                                    className="form-control"
+                                    name={f}
+                                    value={formData[f] || ''}
+                                    onChange={handleInputChange}
+                                    required={f !== 'fullname'}  // fullname can be optional if you want
+                                />
                             </div>
-                        </form>
+                        ))}
+
+                        <div className="mb-3">
+                            <label className="form-label">Department</label>
+                            <div className="btn-group d-flex flex-wrap gap-2">
+                                {['BSBA', 'BSIT', 'BSA', 'BSED'].map(dept => (
+                                    <button
+                                        type="button"
+                                        key={dept}
+                                        className={`btn ${formData.department === dept ? 'btn-primary' : 'btn-outline-primary'} rounded-pill`}
+                                        onClick={() => setFormData(prev => ({ ...prev, department: dept }))}
+                                    >
+                                        {dept}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="mb-3">
+                            <label className="form-label">Year Level</label>
+                            <div className="btn-group d-flex flex-wrap gap-2">
+                                {['1st year', '2nd year', '3rd year', '4th year'].map(year => (
+                                    <button
+                                        type="button"
+                                        key={year}
+                                        className={`btn ${formData.yearLevel === year ? 'btn-primary' : 'btn-outline-primary'} rounded-pill`}
+                                        onClick={() => setFormData(prev => ({ ...prev, yearLevel: year }))}
+                                    >
+                                        {year}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                    <div className="modal-footer">
+                        <button type="submit" className="btn btn-primary">Add Student</button>
+                        <button type="button" className="btn btn-secondary" onClick={() => setShowAddStudentModal(false)}>Cancel</button>
                     </div>
                 </div>
-            )}
+            </form>
+        </div>
+    </div>
+)}
 
             {/* Assign Subjects Modal */}
             {showAssignSubjectsModal && (
