@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, Legend, PieChart, Pie, Cell
 } from 'recharts';
-import { Card, Row, Col } from 'antd';
+import { Card, Row, Col, Modal, Table, Button } from 'antd';
 import StudentSubject from './StudentSubject';
 import Teacher from './Teacher/Teacher';
 import Subjects from './Subjects';
@@ -18,6 +18,7 @@ function MainDashboard() {
   const [gradeCounts, setGradeCounts] = useState({ valid: 0, invalid: 0 });
   const [studentGroupData, setStudentGroupData] = useState([]);
   const [userRole, setUserRole] = useState('');
+    const [yearDeptModal, setYearDeptModal] = useState({ visible: false, students: [], title: '' });
   const [gradeInfo, setGradeInfo] = useState({
     midtermCount: 0,
     finalCount: 0,
@@ -88,6 +89,27 @@ function MainDashboard() {
     fetchUserData();
   }, []);
 
+    // Table columns for the modal
+  const columns = [
+    { title: 'Student Number', dataIndex: 'studentNumber', key: 'studentNumber' },
+    { title: 'Full Name', dataIndex: 'fullname', key: 'fullname' },
+    { title: 'Department', dataIndex: 'department', key: 'department' },
+    { title: 'Year Level', dataIndex: 'yearLevel', key: 'yearLevel' },
+    { title: 'Username', dataIndex: 'username', key: 'username' },
+  ];
+
+    const deptMap = {};
+  studentGroupData.forEach(yearGroup => {
+    yearGroup.departments.forEach(dept => {
+      if (!deptMap[dept.department]) deptMap[dept.department] = [];
+      deptMap[dept.department].push({
+        yearLevel: yearGroup.yearLevel,
+        count: dept.count,
+        students: dept.students
+      });
+    });
+  });
+
   return (
     <>
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
@@ -103,31 +125,52 @@ function MainDashboard() {
         </Col>
       </Row>
 
-      {/* 🆕 Department cards showing counts per year level */}
-      <Row gutter={[16, 16]}>
-        {(() => {
-          const deptMap = {};
-          studentGroupData.forEach((yearGroup) => {
-            const year = yearGroup.yearLevel;
-            yearGroup.departments.forEach((dept) => {
-              if (!deptMap[dept.department]) deptMap[dept.department] = [];
-              deptMap[dept.department].push({ yearLevel: year, count: dept.count });
-            });
-          });
-
-          return Object.keys(deptMap).map((dept, index) => (
-            <Col key={index} xs={24} sm={12} md={6}>
+      {userRole === 'Admin' && (
+        <Row gutter={[16, 16]}>
+          {Object.keys(deptMap).map((dept, idx) => (
+            <Col key={dept} xs={24} sm={12} md={6}>
               <Card title={dept} bordered={false}>
                 {deptMap[dept].map((item, i) => (
-                  <p key={i}>{item.yearLevel} - {item.count}</p>
+                  <div key={i} style={{ marginBottom: 8 }}>
+                    <Button
+                      type="link"
+                      onClick={() =>
+                        setYearDeptModal({
+                          visible: true,
+                          students: item.students,
+                          title: `${item.yearLevel} - ${dept}`
+                        })
+                      }
+                    >
+                      {item.yearLevel} - {item.count} Student{item.count > 1 ? 's' : ''}
+                    </Button>
+                  </div>
                 ))}
               </Card>
             </Col>
-          ));
-        })()}
-      </Row>
+          ))}
+        </Row>
+      )}
+
+      {/* Modal to show students */}
+      <Modal
+        title={yearDeptModal.title}
+        visible={yearDeptModal.visible}
+        width={800}
+        onCancel={() => setYearDeptModal({ visible: false, students: [], title: '' })}
+        footer={null}
+      >
+        <Table
+          dataSource={yearDeptModal.students}
+          columns={columns}
+          rowKey="id"
+          pagination={{ pageSize: 5 }}
+        />
+      </Modal>
 
 <Row gutter={[16, 16]} style={{ marginTop: 40 }}>
+              {userRole === 'Admin' && (
+        <>
 <Col xs={24} sm={24} md={12}>
   <Card title="User Roles Distribution" bordered={false}>
     <div style={{ width: '100%', height: 400 }}>
@@ -154,6 +197,8 @@ function MainDashboard() {
     </div>
   </Card>
 </Col>
+      </>
+            )}
 
   {/* Right column: either UserEvents (Admin) or Teacher chart */}
   <Col xs={24} sm={24} md={12}>
