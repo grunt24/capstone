@@ -3,6 +3,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import axiosInstance from '../../../api/axiosInstance';
+import { Card } from 'antd';
 
 function Subjects() {
   const [subjects, setSubjects] = useState([]);
@@ -139,6 +140,7 @@ function Subjects() {
     itemsPerPage === 'All' ? filteredSubjects.length : currentPage * itemsPerPage
   );
   return (
+    <Card>
     <div>
       <button className="btn btn-success mb-3" onClick={() => openModal()}>
         Add Subject
@@ -291,6 +293,7 @@ function Subjects() {
       {/* Toast notifications */}
       <ToastContainer position="top-right" autoClose={3000} hideProgressBar />
     </div>
+    </Card>
   );
 }
 

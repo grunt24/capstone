@@ -4,6 +4,7 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import axiosInstance from '../../../../api/axiosInstance';
 import loginService from '../../../../api/loginService';
+import { Card } from 'antd';
 
 function Teacher() {
   const [teachers, setTeachers] = useState([]);
@@ -193,6 +194,7 @@ function Teacher() {
   }
 
   return (
+    <Card>
     <div>
       {userRole !== 'Teacher' && (
         <button className="btn btn-success mb-3" onClick={() => openModal()}>
@@ -371,6 +373,8 @@ function Teacher() {
 
       <ToastContainer position="top-right" autoClose={3000} hideProgressBar />
     </div>
+    </Card>
+
   );
 }
 

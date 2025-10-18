@@ -6,14 +6,16 @@ const loginService = {
       const response = await axiosInstance.post("/Auth/login/", { username, password });
 
       // Destructure the response data, now including id
-      const { token, username: userName, role, fullname, id } = response.data;
+      const { token, username: userName, role, fullname, id, academicYear, semester  } = response.data;
 
       if (token) {
         const userDetails = {
           id,             // <--- Add this for teacher/user id
           userName,       
           fullname,       
-          role
+          role,
+          academicYear,
+          semester 
         };
         localStorage.setItem("token", token);
         localStorage.setItem("userDetails", JSON.stringify(userDetails));
@@ -43,6 +45,12 @@ const loginService = {
 
   getToken() {
     return localStorage.getItem("token") || null;
+  },
+    getAcademicPeriod() {
+    const userDetails = this.getUserDetails();
+    return userDetails
+      ? { academicYear: userDetails.academicYear, semester: userDetails.semester }
+      : { academicYear: null, semester: null };
   },
 
   logout() {

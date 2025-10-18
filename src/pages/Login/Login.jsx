@@ -50,8 +50,8 @@ const Login = () => {
         {error && <Alert message={error} type="error" showIcon style={{ marginBottom: "10px" }} />}
 
         <Form className="form" onFinish={handleSubmit}>
-          <Form.Item name="userName" rules={[{ required: true, message: "Please enter your email!" }]}>
-            <Input className="input" placeholder="Email" />
+          <Form.Item name="userName" rules={[{ required: true, message: "Please enter your student number or email!" }]}>
+            <Input className="input" placeholder="Student number or username" />
           </Form.Item>
           <Form.Item name="password" rules={[{ required: true, message: "Please enter your password!" }]}>
             <Input.Password className="input" placeholder="Password" />

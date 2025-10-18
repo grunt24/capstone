@@ -59,7 +59,6 @@ const GradePercentage = () => {
 
   return (
     <div className="bg-white shadow-md rounded-2xl p-4">
-      <h2 className="text-xl font-semibold mb-6 text-center">Grade Overview</h2>
 
       {/* Flex container that adapts */}
       <div

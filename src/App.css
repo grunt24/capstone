@@ -1,0 +1,5 @@
+/* sidebar.css or your main CSS file */
+.ant-menu-item a {
+  text-decoration: none !important;
+  color: inherit; /* keep default color */
+}
