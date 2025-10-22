@@ -2,22 +2,15 @@ import React, { useEffect, useState } from "react";
 import {
   Table,
   Button,
-  Upload,
-  Tag,
   Form,
   InputNumber,
-  Select,
   Spin,
   message,
   Typography,
   Card,
+  Tag,
 } from "antd";
-import {
-  UploadOutlined,
-  SaveOutlined,
-  DeleteOutlined,
-  PlusOutlined,
-} from "@ant-design/icons";
+import { SaveOutlined, PlusOutlined } from "@ant-design/icons";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import GradePercentage from "./Graph/GradePercentage";
@@ -25,21 +18,20 @@ import axiosInstance from "../../../api/axiosInstance";
 import loginService from "../../../api/loginService";
 
 const API_URL = "/GradeCalculation/students-midtermGrades";
-const UPLOAD_API_URL = "/GradeCalculation/upload-midterm";
-const TEACHER_STUDENTS_API = "/Teachers/my-students";
 const UPDATE_API_URL = "/GradeCalculation";
-
 const { Title } = Typography;
 
 export default function MidtermGradesTableContent() {
   const [grades, setGrades] = useState([]);
-  const [teacherStudents, setTeacherStudents] = useState([]);
-  const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [editForm] = Form.useForm();
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
   const [quizCount, setQuizCount] = useState(5);
   const [classStandingCount, setClassStandingCount] = useState(5);
+
+  // 🟢 Now per-subject totals (instead of global)
+  const [subjectTotals, setSubjectTotals] = useState({});
 
   const academicPeriod = loginService.getAcademicPeriod();
 
@@ -50,12 +42,37 @@ export default function MidtermGradesTableContent() {
   const fetchAllData = async () => {
     setLoading(true);
     try {
-      const [gradesResp, teacherStudentsResp] = await Promise.all([
-        axiosInstance.get(API_URL),
-        axiosInstance.get(TEACHER_STUDENTS_API),
-      ]);
-      setGrades(gradesResp.data?.data || []);
-      setTeacherStudents(teacherStudentsResp.data || []);
+      const gradesResp = await axiosInstance.get(API_URL);
+      const fetchedGrades = gradesResp.data?.data || [];
+      setGrades(fetchedGrades);
+
+      // Initialize per-subject totals
+      const totalsBySubject = {};
+
+      fetchedGrades.forEach((g) => {
+        const subj = g.subjectName;
+
+        if (!totalsBySubject[subj]) {
+          totalsBySubject[subj] = {
+            quizTotals: {},
+            classStandingTotals: {},
+            prelimTotal: g.prelimTotal || 0,
+            midtermTotal: g.midtermTotal || 0,
+          };
+        }
+
+        (g.quizzes || []).forEach((q, idx) => {
+          totalsBySubject[subj].quizTotals[idx + 1] =
+            q.totalQuizScore || totalsBySubject[subj].quizTotals[idx + 1] || 0;
+        });
+
+        (g.classStandingItems || []).forEach((c, idx) => {
+          totalsBySubject[subj].classStandingTotals[idx + 1] =
+            c.total || totalsBySubject[subj].classStandingTotals[idx + 1] || 0;
+        });
+      });
+
+      setSubjectTotals(totalsBySubject);
     } catch (err) {
       console.error("Failed to load data:", err);
       toast.error("Failed to load data.");
@@ -64,59 +81,19 @@ export default function MidtermGradesTableContent() {
     }
   };
 
-  const handleUpload = async ({ file }) => {
-    setUploading(true);
-    const formData = new FormData();
-    formData.append("file", file);
-    try {
-      const res = await axiosInstance.post(UPLOAD_API_URL, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      if (res.status === 200) {
-        toast.success("File uploaded successfully!");
-        fetchAllData();
-      } else {
-        toast.error("Upload failed.");
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Error uploading file.");
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (selectedRowKeys.length === 0) {
-      message.warning("No students selected for deletion.");
-      return;
-    }
-
-    try {
-      await Promise.all(
-        selectedRowKeys.map((id) =>
-          axiosInstance.delete(`/GradeCalculation/delete-midtermGrades?studentId=${id}`)
-        )
-      );
-      message.success("Selected grades deleted successfully!");
-      setSelectedRowKeys([]);
-      fetchAllData();
-    } catch (err) {
-      console.error(err);
-      message.error("Failed to delete selected grades.");
-    }
-  };
-
   const addQuizColumn = () => setQuizCount((prev) => prev + 1);
   const addClassStandingColumn = () => setClassStandingCount((prev) => prev + 1);
 
   const saveAll = async () => {
     try {
+      setSaving(true);
       const values = await editForm.validateFields();
 
       const cleanedData = Object.entries(values).reduce((acc, [id, fields]) => {
         const cleaned = Object.fromEntries(
-          Object.entries(fields).filter(([_, v]) => v !== "" && v !== null && v !== undefined)
+          Object.entries(fields).filter(
+            ([_, v]) => v !== "" && v !== null && v !== undefined
+          )
         );
         acc[id] = cleaned;
         return acc;
@@ -128,43 +105,56 @@ export default function MidtermGradesTableContent() {
           const existingStudent = grades.find((g) => g.id === parseInt(key));
           if (!existingStudent) return null;
 
+          const subjTotals = subjectTotals[existingStudent.subjectName] || {
+            quizTotals: {},
+            classStandingTotals: {},
+            prelimTotal: 0,
+            midtermTotal: 0,
+          };
+
           return {
-            id: existingStudent.id,
-            studentId: existingStudent.studentId,
-            studentNumber: existingStudent.studentNumber,
-            studentFullName: existingStudent.studentFullName,
-            subjectId: existingStudent.subjectId,
-            subjectCode: existingStudent.subjectCode,
-            subjectName: existingStudent.subjectName,
-            department: existingStudent.department,
-            semester: existingStudent.semester,
-            academicYear: existingStudent.academicYear,
-            academicPeriodId: existingStudent.academicPeriodId,
-            attendanceScore: formItem.attendanceScore ?? existingStudent.attendanceScore,
-            recitationScore: formItem.recitationScore ?? existingStudent.recitationScore,
+            ...existingStudent,
+            attendanceScore:
+              formItem.attendanceScore ?? existingStudent.attendanceScore,
+            recitationScore:
+              formItem.recitationScore ?? existingStudent.recitationScore,
             projectScore: formItem.projectScore ?? existingStudent.projectScore,
             sepScore:
               existingStudent.department?.toUpperCase() === "BSED"
                 ? formItem.sepScore ?? existingStudent.sepScore
                 : 0,
             prelimScore: formItem.prelimScore ?? existingStudent.prelimScore,
-            prelimTotal: formItem.prelimTotal ?? existingStudent.prelimTotal,
             midtermScore: formItem.midtermScore ?? existingStudent.midtermScore,
-            midtermTotal: formItem.midtermTotal ?? existingStudent.midtermTotal,
             quizzes: Object.entries(formItem)
-              .filter(([key, val]) => key.startsWith("quiz") && val?.quizScore)
-              .map(([key, val]) => ({
-                label: key,
-                quizScore: val.quizScore,
-                totalQuizScore: val.totalQuizScore,
-              })),
+              .filter(([key, val]) => key.startsWith("quiz") && val?.quizScore !== undefined)
+              .map(([key, val]) => {
+                const quizIndex = parseInt(key.replace("quiz", ""));
+                return {
+                  label: key,
+                  quizScore: val.quizScore,
+                  totalQuizScore:
+                    subjTotals.quizTotals[quizIndex] ||
+                    val.totalQuizScore ||
+                    0,
+                };
+              }),
             classStandingItems: Object.entries(formItem)
-              .filter(([key, val]) => key.startsWith("classStanding") && val?.score)
-              .map(([key, val]) => ({
-                label: key,
-                score: val.score,
-                total: val.total,
-              })),
+              .filter(([key, val]) => key.startsWith("classStanding") && val?.score !== undefined)
+              .map(([key, val]) => {
+                const index = parseInt(key.replace("classStanding", ""));
+                return {
+                  label: key,
+                  score: val.score,
+                  total:
+                    subjTotals.classStandingTotals[index] ||
+                    val.total ||
+                    0,
+                };
+              }),
+            prelimTotal:
+              subjTotals.prelimTotal || existingStudent.prelimTotal,
+            midtermTotal:
+              subjTotals.midtermTotal || existingStudent.midtermTotal,
           };
         })
         .filter(Boolean);
@@ -177,107 +167,224 @@ export default function MidtermGradesTableContent() {
     } catch (err) {
       console.error(err);
       message.error("❌ Failed to save grades.");
+    } finally {
+      setSaving(false);
     }
   };
 
-  // Group grades by subject
   const subjects = [...new Set(grades.map((g) => g.subjectName))];
 
   const renderTableForSubject = (subjectName) => {
     const subjectGrades = grades.filter((g) => g.subjectName === subjectName);
-    const isBSED = subjectGrades.some((g) => g.department?.toUpperCase() === "BSED");
+    const isBSED = subjectGrades.some(
+      (g) => g.department?.toUpperCase() === "BSED"
+    );
+
+    const totals = subjectTotals[subjectName] || {
+      quizTotals: {},
+      classStandingTotals: {},
+      prelimTotal: 0,
+      midtermTotal: 0,
+    };
+
+    const updateTotals = (field, index, val) => {
+      setSubjectTotals((prev) => ({
+        ...prev,
+        [subjectName]: {
+          ...prev[subjectName],
+          [field]: {
+            ...prev[subjectName]?.[field],
+            [index]: val,
+          },
+        },
+      }));
+    };
+
+    const updateSingleTotal = (key, val) => {
+      setSubjectTotals((prev) => ({
+        ...prev,
+        [subjectName]: {
+          ...prev[subjectName],
+          [key]: val,
+        },
+      }));
+    };
 
     const columns = [
       {
         title: "Student #",
         dataIndex: "studentNumber",
         key: "studentNumber",
-        fixed: "left",
         width: 120,
+        fixed: "left",
       },
       {
         title: "Name",
         dataIndex: "studentFullName",
         key: "studentFullName",
-        fixed: "left",
         width: 200,
+        fixed: "left",
       },
-      // 🧮 Quizzes
+      // Quizzes
       ...Array.from({ length: quizCount }, (_, i) => ({
-        title: `Quiz ${i + 1}`,
+        title: (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+            <span>{`Quiz ${i + 1}`}</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
+              <span>Total:</span>
+              <InputNumber
+                min={1}
+                value={totals.quizTotals[i + 1] || ""}
+                onChange={(val) => updateTotals("quizTotals", i + 1, val)}
+                style={{ width: 70 }}
+                placeholder="Total"
+              />
+            </div>
+          </div>
+        ),
         render: (_, record) => (
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
             <Form.Item
               name={[record.id, `quiz${i + 1}`, "quizScore"]}
-              initialValue={record.quizzes?.[i]?.quizScore ?? undefined}
+              initialValue={record.quizzes?.[i]?.quizScore}
               style={{ margin: 0 }}
             >
               <InputNumber min={0} style={{ width: 60 }} placeholder="Score" />
             </Form.Item>
-            /
-            <Form.Item
-              name={[record.id, `quiz${i + 1}`, "totalQuizScore"]}
-              initialValue={record.quizzes?.[i]?.totalQuizScore ?? undefined}
-              style={{ margin: 0 }}
-            >
-              <InputNumber min={1} style={{ width: 60 }} placeholder="Total" />
-            </Form.Item>
+            {totals.quizTotals[i + 1] ? <span>/ {totals.quizTotals[i + 1]}</span> : null}
           </div>
         ),
       })),
-      // 🧮 Class Standing
+
+      // Class Standing
       ...Array.from({ length: classStandingCount }, (_, i) => ({
-        title: `Class Standing ${i + 1}`,
+        title: (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+            <span>{`Class Standing ${i + 1}`}</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
+              <span>Total:</span>
+              <InputNumber
+                min={1}
+                value={totals.classStandingTotals[i + 1] || ""}
+                onChange={(val) => updateTotals("classStandingTotals", i + 1, val)}
+                style={{ width: 70 }}
+                placeholder="Total"
+              />
+            </div>
+          </div>
+        ),
         render: (_, record) => (
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
             <Form.Item
               name={[record.id, `classStanding${i + 1}`, "score"]}
-              initialValue={record.classStandingItems?.[i]?.score ?? undefined}
+              initialValue={record.classStandingItems?.[i]?.score}
               style={{ margin: 0 }}
             >
               <InputNumber min={0} style={{ width: 60 }} placeholder="Score" />
             </Form.Item>
-            /
-            <Form.Item
-              name={[record.id, `classStanding${i + 1}`, "total"]}
-              initialValue={record.classStandingItems?.[i]?.total ?? undefined}
-              style={{ margin: 0 }}
-            >
-              <InputNumber min={1} style={{ width: 60 }} placeholder="Total" />
-            </Form.Item>
+            {totals.classStandingTotals[i + 1] ? (
+              <span>/ {totals.classStandingTotals[i + 1]}</span>
+            ) : null}
           </div>
         ),
       })),
+
+      // Other Scores
       ...[
         "recitationScore",
         "attendanceScore",
         "projectScore",
         ...(isBSED ? ["sepScore"] : []),
-        "prelimScore",
-        "prelimTotal",
-        "midtermScore",
-        "midtermTotal",
       ].map((field) => ({
         title: field,
         key: field,
         render: (_, record) => (
           <Form.Item
             name={[record.id, field]}
-            initialValue={record[field] ?? undefined}
+            initialValue={record[field]}
             style={{ margin: 0 }}
           >
             <InputNumber min={0} step={0.01} style={{ width: 90 }} placeholder={field} />
           </Form.Item>
         ),
       })),
+
+      // Prelim Total
+      {
+        title: (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+            <span>Prelim Total</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
+              <span>Total:</span>
+              <InputNumber
+                min={1}
+                value={totals.prelimTotal || ""}
+                onChange={(val) => updateSingleTotal("prelimTotal", val)}
+                style={{ width: 80 }}
+                placeholder="Total"
+              />
+            </div>
+          </div>
+        ),
+        key: "prelimTotal",
+        render: (_, record) => (
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <Form.Item
+              name={[record.id, "prelimScore"]}
+              initialValue={record.prelimScore}
+              style={{ margin: 0 }}
+            >
+              <InputNumber min={0} style={{ width: 80 }} placeholder="Score" />
+            </Form.Item>
+            {totals.prelimTotal ? <span>/ {totals.prelimTotal}</span> : null}
+          </div>
+        ),
+      },
+
+      // Midterm Total
+      {
+        title: (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+            <span>Midterm Total</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
+              <span>Total:</span>
+              <InputNumber
+                min={1}
+                value={totals.midtermTotal || ""}
+                onChange={(val) => updateSingleTotal("midtermTotal", val)}
+                style={{ width: 80 }}
+                placeholder="Total"
+              />
+            </div>
+          </div>
+        ),
+        key: "midtermTotal",
+        render: (_, record) => (
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <Form.Item
+              name={[record.id, "midtermScore"]}
+              initialValue={record.midtermScore}
+              style={{ margin: 0 }}
+            >
+              <InputNumber min={0} style={{ width: 80 }} placeholder="Score" />
+            </Form.Item>
+            {totals.midtermTotal ? <span>/ {totals.midtermTotal}</span> : null}
+          </div>
+        ),
+      },
+
       {
         title: "Total Grade",
         dataIndex: "totalMidtermGrade",
         key: "totalMidtermGrade",
-        fixed: "right",
         width: 120,
+        fixed: "right",
         render: (grade) =>
-          grade >= 75 ? <Tag color="green">{grade}</Tag> : <Tag color="red">{grade}</Tag>,
+          grade >= 75 ? (
+            <Tag color="green">{grade}</Tag>
+          ) : (
+            <Tag color="red">{grade}</Tag>
+          ),
       },
     ];
 
@@ -299,10 +406,10 @@ export default function MidtermGradesTableContent() {
             columns={columns}
             pagination={false}
             scroll={{ x: 4000, y: 500 }}
-            rowSelection={{
-              selectedRowKeys,
-              onChange: (keys) => setSelectedRowKeys(keys),
-            }}
+            // rowSelection={{
+            //   selectedRowKeys,
+            //   onChange: (keys) => setSelectedRowKeys(keys),
+            // }}
           />
         </Form>
       </Card>
@@ -310,34 +417,18 @@ export default function MidtermGradesTableContent() {
   };
 
   return (
-    <Spin spinning={loading}>
+    <Spin spinning={loading || saving} tip={saving ? "Saving..." : "Loading..."}>
       <div style={{ marginBottom: 20 }}>
         <GradePercentage />
       </div>
 
       <div style={{ marginBottom: 16, display: "flex", gap: 10, flexWrap: "wrap" }}>
-        <Upload customRequest={handleUpload} showUploadList={false} accept=".xls,.xlsx">
-          <Button icon={<UploadOutlined />} loading={uploading}>
-            Upload Excel
-          </Button>
-        </Upload>
-
-        <Button type="primary" icon={<SaveOutlined />} onClick={saveAll}>
+        <Button type="primary" icon={<SaveOutlined />} onClick={saveAll} loading={saving}>
           Save All Scores
         </Button>
-
-        <Button type="primary" icon={<SaveOutlined />} onClick={saveAll}>
-          Calculate Midterm Grades
-        </Button>
-
-        <Button danger icon={<DeleteOutlined />} onClick={handleDelete}>
-          Delete Selected
-        </Button>
-
         <Button icon={<PlusOutlined />} onClick={addQuizColumn}>
           + Add Quiz
         </Button>
-
         <Button icon={<PlusOutlined />} onClick={addClassStandingColumn}>
           + Add Class Standing
         </Button>

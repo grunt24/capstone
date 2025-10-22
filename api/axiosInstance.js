@@ -15,8 +15,8 @@ const getCurrentToken = () => localStorage.getItem("token");
 
 // Create the Axios instance
 const axiosInstance = axios.create({
-  baseURL: getApiBaseUrl(),
-    timeout: 50000
+  baseURL: getApiBaseUrl()
+    // timeout: 50000
 });
 
 axiosInstance.interceptors.request.use(

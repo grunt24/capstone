@@ -125,7 +125,7 @@ function MainDashboard() {
         </Col>
       </Row>
 
-      {userRole === 'Admin' && (
+      {/* {userRole === 'Admin' && (
         <Row gutter={[16, 16]}>
           {Object.keys(deptMap).map((dept, idx) => (
             <Col key={dept} xs={24} sm={12} md={6}>
@@ -150,7 +150,7 @@ function MainDashboard() {
             </Col>
           ))}
         </Row>
-      )}
+      )} */}
 
       {/* Modal to show students */}
       <Modal
