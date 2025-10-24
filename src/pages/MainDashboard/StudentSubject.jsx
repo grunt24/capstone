@@ -4,7 +4,9 @@ import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import axiosInstance from "../../../api/axiosInstance";
 import loginService from "../../../api/loginService";
-import { Card,  Tabs, Spin } from "antd";
+import { Card, Tabs, Spin, Select as AntSelect } from "antd";
+
+const { Option } = AntSelect;
 
 function StudentSubject() {
   // State to manage the list of students.
@@ -41,9 +43,7 @@ function StudentSubject() {
   const [sortAsc, setSortAsc] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  // Add this near your other state declarations
-const [sortField, setSortField] = useState("fullname"); // default sort field
-
+  const [sortField, setSortField] = useState("fullname"); // default sort field
 
   // Main function to fetch all necessary data from the backend.
   const fetchStudentsAndSubjects = async () => {
@@ -80,7 +80,6 @@ const [sortField, setSortField] = useState("fullname"); // default sort field
         });
 
         const subjectIdArray = Array.from(uniqueSubjectIds);
-
         const gradePromises = subjectIdArray.map((subjectId) =>
           axiosInstance.get(`/Grades/subject/${subjectId}`).catch((error) => {
             console.error(
@@ -279,7 +278,9 @@ const [sortField, setSortField] = useState("fullname"); // default sort field
       ? filteredStudents.length
       : currentPage * itemsPerPage
   );
-    const grouped = students.reduce((acc, s) => {
+
+  // Group students by department->year for tabs
+  const grouped = students.reduce((acc, s) => {
     const dept = s.department || "Unknown Department";
     const year = s.yearLevel || "Unknown Year";
     if (!acc[dept]) acc[dept] = {};
@@ -290,390 +291,434 @@ const [sortField, setSortField] = useState("fullname"); // default sort field
 
   return (
     <Card>
-    <div>
-      <h2 className="mb-4">Student Management</h2>
+      <div>
+        <h2 className="mb-4">Student Management</h2>
 
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <div style={{ display: "flex", gap: "10px" }}>
-          {currentRole !== "Student" && (
-            <>
-              <button
-                className="btn btn-success"
-                onClick={() => setShowAddStudentModal(true)}
-              >
-                Add Student
-              </button>
-              <button
-                className="btn btn-info"
-                onClick={() => setShowAssignSubjectsModal(true)}
-              >
-                Assign Subjects
-              </button>
-            </>
-          )}
+        <div className="d-flex justify-content-between align-items-center mb-3">
+          <div style={{ display: "flex", gap: "10px" }}>
+            {currentRole !== "Student" && (
+              <>
+                <button
+                  className="btn btn-success"
+                  onClick={() => setShowAddStudentModal(true)}
+                >
+                  Add Student
+                </button>
+                <button
+                  className="btn btn-info"
+                  onClick={() => setShowAssignSubjectsModal(true)}
+                >
+                  Assign Subjects
+                </button>
+              </>
+            )}
+          </div>
         </div>
-      </div>
 
-
-      <div className="row my-3">
-        <div className="col-md-6">
-          <input
-            className="form-control"
+        <div className="row my-3">
+          <div className="col-md-6">
+            <input
+              className="form-control"
               placeholder="Search by Name or Year Level..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <div className="col-md-3">
+            <select
+              className="form-select"
+              value={itemsPerPage}
+              onChange={(e) => {
+                const value =
+                  e.target.value === "All" ? "All" : parseInt(e.target.value);
+                setItemsPerPage(value);
+                setCurrentPage(1);
+              }}
+            >
+              {[5, 10, 20, "All"].map((num) => (
+                <option key={num} value={num}>
+                  {num}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="text-center my-5">
+            <Spin size="large" />
+            <p className="mt-2">Loading students and grades...</p>
+          </div>
+        ) : (
+          <Tabs
+            type="card"
+            items={Object.entries(grouped).map(([dept, years]) => ({
+              key: dept,
+              label: dept,
+              children: (
+                <Tabs
+                  type="line"
+                  items={Object.entries(years).map(
+                    ([year, studentsByYear]) => ({
+                      key: year,
+                      label: year,
+                      children: (
+                        <div className="table-responsive mt-3">
+                          <table className="table table-bordered table-hover">
+                            <thead className="table-light">
+                              <tr>
+                                <th>Student Number</th>
+                                <th>Full Name</th>
+                                <th>Subjects</th>
+                                <th>Action</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {studentsByYear.map((student) => (
+                                <tr key={student.id}>
+                                  <td>{student.studentNumber}</td>
+                                  <td>{student.fullname}</td>
+                                  <td>
+                                    {subjectsMap[student.id] &&
+                                    subjectsMap[student.id].length > 0 ? (
+                                      <ul className="list-unstyled mb-0">
+                                        {subjectsMap[student.id].map((sub) => (
+                                          <li key={sub.subjectId}>
+                                            <strong>{sub.subjectName}</strong> (
+                                            {sub.subjectCode}) –{" "}
+                                            <em>{sub.teacherName}</em>
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    ) : (
+                                      <span className="text-muted">
+                                        No subjects
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td>
+                                    {currentRole !== "Student" && (
+                                      <button
+                                        className="btn btn-sm btn-danger"
+                                        onClick={() =>
+                                          confirmDelete(student.id)
+                                        }
+                                      >
+                                        Delete
+                                      </button>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ),
+                    })
+                  )}
+                />
+              ),
+            }))}
           />
-        </div>
-        <div className="col-md-3">
-          <select
-            className="form-select"
-            value={itemsPerPage}
-            onChange={(e) => {
-              const value =
-                e.target.value === "All" ? "All" : parseInt(e.target.value);
-              setItemsPerPage(value);
-              setCurrentPage(1);
-            }}
+        )}
+
+        <div className="d-flex justify-content-between">
+          <button
+            className="btn btn-secondary"
+            disabled={currentPage <= 1}
+            onClick={() => setCurrentPage((prev) => prev - 1)}
           >
-            {[5, 10, 20, "All"].map((num) => (
-              <option key={num} value={num}>
-                {num}
-              </option>
-            ))}
-          </select>
+            Previous
+          </button>
+          <span>
+            Page {currentPage} of {totalPages}
+          </span>
+          <button
+            className="btn btn-secondary"
+            disabled={currentPage >= totalPages}
+            onClick={() => setCurrentPage((prev) => prev + 1)}
+          >
+            Next
+          </button>
         </div>
-      </div>
 
-      {loading ? (
-        <div className="text-center my-5">
-          <Spin size="large" />
-          <p className="mt-2">Loading students and grades...</p>
-        </div>
-      ) : (
-        <Tabs
-          type="card"
-          items={Object.entries(grouped).map(([dept, years]) => ({
-            key: dept,
-            label: dept,
-            children: (
-              <Tabs
-                type="line"
-                items={Object.entries(years).map(([year, students]) => ({
-                  key: year,
-                  label: year,
-                  children: (
-                    <div className="table-responsive mt-3">
-                      <table className="table table-bordered table-hover">
-                        <thead className="table-light">
-                          <tr>
-                            <th>Student Number</th>
-                            <th>Full Name</th>
-                            <th>Subjects</th>
-                            <th>Action</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {students.map((student) => (
-                            <tr key={student.id}>
-                              <td>{student.studentNumber}</td>
-                              <td>{student.fullname}</td>
-                              <td>
-                                {subjectsMap[student.id] &&
-                                subjectsMap[student.id].length > 0 ? (
-                                  <ul className="list-unstyled mb-0">
-                                    {subjectsMap[student.id].map((sub) => (
-                                      <li key={sub.subjectId}>
-                                        <strong>{sub.subjectName}</strong> (
-                                        {sub.subjectCode}) –{" "}
-                                        <em>{sub.teacherName}</em>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                ) : (
-                                  <span className="text-muted">No subjects</span>
-                                )}
-                              </td>
-                              <td>
-                                {currentRole !== "Student" && (
-                                  <button
-                                    className="btn btn-sm btn-danger"
-                                    onClick={() => confirmDelete(student.id)}
-                                  >
-                                    Delete
-                                  </button>
-                                )}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ),
-                }))}
-              />
-            ),
-          }))}
-        />
-      )}
-
-      <div className="d-flex justify-content-between">
-        <button
-          className="btn btn-secondary"
-          disabled={currentPage <= 1}
-          onClick={() => setCurrentPage((prev) => prev - 1)}
-        >
-          Previous
-        </button>
-        <span>
-          Page {currentPage} of {totalPages}
-        </span>
-        <button
-          className="btn btn-secondary"
-          disabled={currentPage >= totalPages}
-          onClick={() => setCurrentPage((prev) => prev + 1)}
-        >
-          Next
-        </button>
-      </div>
-
-      {/* Add Student Modal */}
-      {showAddStudentModal && (
-        <div
-          className="modal show d-block"
-          tabIndex="-1"
-          role="dialog"
-          style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
-        >
-          <div className="modal-dialog" role="document">
-            <form onSubmit={handleAddStudent}>
-              <div className="modal-content">
-                <div className="modal-header">
-                  <h5 className="modal-title">Add New Student</h5>
-                  <button
-                    type="button"
-                    className="btn-close"
-                    onClick={() => setShowAddStudentModal(false)}
-                    aria-label="Close"
-                  />
-                </div>
-                <div className="modal-body">
-                  {/* Student Number input */}
-                  <div className="mb-3">
-                    <label className="form-label">Student Number</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      name="studentNumber"
-                      value={formData.studentNumber || ""}
-                      onChange={handleInputChange}
-                      required
+        {/* Add Student Modal */}
+        {showAddStudentModal && (
+          <div
+            className="modal show d-block"
+            tabIndex="-1"
+            role="dialog"
+            style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+          >
+            <div className="modal-dialog" role="document">
+              <form onSubmit={handleAddStudent}>
+                <div className="modal-content">
+                  <div className="modal-header">
+                    <h5 className="modal-title">Add New Student</h5>
+                    <button
+                      type="button"
+                      className="btn-close"
+                      onClick={() => setShowAddStudentModal(false)}
+                      aria-label="Close"
                     />
                   </div>
-
-                  {/* Existing inputs */}
-                  {["username", "password", "fullname"].map((f) => (
-                    <div className="mb-3" key={f}>
-                      <label className="form-label text-capitalize">{f}</label>
+                  <div className="modal-body">
+                    {/* Student Number input */}
+                    <div className="mb-3">
+                      <label className="form-label">Student Number</label>
                       <input
-                        type={f === "password" ? "password" : "text"}
+                        type="text"
                         className="form-control"
-                        name={f}
-                        value={formData[f] || ""}
+                        name="studentNumber"
+                        value={formData.studentNumber || ""}
                         onChange={handleInputChange}
-                        required={f !== "fullname"} // fullname can be optional if you want
+                        required
                       />
                     </div>
-                  ))}
 
-                  <div className="mb-3">
-                    <label className="form-label">Department</label>
-                    <div className="btn-group d-flex flex-wrap gap-2">
-                      {["BSBA", "BSIT", "BSA", "BSED"].map((dept) => (
-                        <button
-                          type="button"
-                          key={dept}
-                          className={`btn ${
-                            formData.department === dept
-                              ? "btn-primary"
-                              : "btn-outline-primary"
-                          } rounded-pill`}
-                          onClick={() =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              department: dept,
-                            }))
-                          }
-                        >
-                          {dept}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="mb-3">
-                    <label className="form-label">Year Level</label>
-                    <div className="btn-group d-flex flex-wrap gap-2">
-                      {["1st year", "2nd year", "3rd year", "4th year"].map(
-                        (year) => (
+                    {/* Existing inputs */}
+                    {["username", "password", "fullname"].map((f) => (
+                      <div className="mb-3" key={f}>
+                        <label className="form-label text-capitalize">
+                          {f}
+                        </label>
+                        <input
+                          type={f === "password" ? "password" : "text"}
+                          className="form-control"
+                          name={f}
+                          value={formData[f] || ""}
+                          onChange={handleInputChange}
+                          required={f !== "fullname"}
+                        />
+                      </div>
+                    ))}
+
+                    <div className="mb-3">
+                      <label className="form-label">Department</label>
+                      <div className="btn-group d-flex flex-wrap gap-2">
+                        {["BSBA", "BSIT", "BSA", "BSED"].map((dept) => (
                           <button
                             type="button"
-                            key={year}
+                            key={dept}
                             className={`btn ${
-                              formData.yearLevel === year
+                              formData.department === dept
                                 ? "btn-primary"
                                 : "btn-outline-primary"
                             } rounded-pill`}
                             onClick={() =>
                               setFormData((prev) => ({
                                 ...prev,
-                                yearLevel: year,
+                                department: dept,
                               }))
                             }
                           >
-                            {year}
+                            {dept}
                           </button>
-                        )
-                      )}
+                        ))}
+                      </div>
+                    </div>
+                    <div className="mb-3">
+                      <label className="form-label">Year Level</label>
+                      <div className="btn-group d-flex flex-wrap gap-2">
+                        {["1st year", "2nd year", "3rd year", "4th year"].map(
+                          (year) => (
+                            <button
+                              type="button"
+                              key={year}
+                              className={`btn ${
+                                formData.yearLevel === year
+                                  ? "btn-primary"
+                                  : "btn-outline-primary"
+                              } rounded-pill`}
+                              onClick={() =>
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  yearLevel: year,
+                                }))
+                              }
+                            >
+                              {year}
+                            </button>
+                          )
+                        )}
+                      </div>
                     </div>
                   </div>
+                  <div className="modal-footer">
+                    <button type="submit" className="btn btn-primary">
+                      Add Student
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => setShowAddStudentModal(false)}
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
-                <div className="modal-footer">
-                  <button type="submit" className="btn btn-primary">
-                    Add Student
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={() => setShowAddStudentModal(false)}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-
-{/* Assign Subjects Modal */}
-{showAssignSubjectsModal && (
-  <div
-    className="modal show d-block"
-    tabIndex="-1"
-    role="dialog"
-    style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
-  >
-    <div className="modal-dialog" role="document">
-      <form onSubmit={handleAssignSubjects}>
-        <div className="modal-content">
-          <div className="modal-header">
-            <h5 className="modal-title">Assign Subjects to Student</h5>
-            <button
-              type="button"
-              className="btn-close"
-              onClick={() => setShowAssignSubjectsModal(false)}
-              aria-label="Close"
-            />
-          </div>
-          <div className="modal-body">
-            {/* Select Student */}
-            <div className="mb-3">
-              <label className="form-label">Select Student</label>
-              <select
-                className="form-select"
-                value={selectedStudentId || ""}
-                onChange={(e) => setSelectedStudentId(Number(e.target.value))}
-                required
-              >
-                <option value="" disabled>
-                  Select a student
-                </option>
-                {students.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.fullname} ({s.department})
-                  </option>
-                ))}
-              </select>
+              </form>
             </div>
-
-            {/* Filter Subjects by Department */}
-// Filter Subjects by Department
-<div className="mb-3">
-  <label className="form-label">Select Subjects</label>
-  <div style={{ maxHeight: "200px", overflowY: "auto" }}>
-    {(() => {
-      const selectedStudent = students.find(
-        (s) => s.id === selectedStudentId
-      );
-
-      if (!selectedStudent)
-        return <p className="text-muted">Select a student first.</p>;
-
-      // ✅ Use subjectDepartment instead of department
-      const filteredSubjects = availableSubjects.filter(
-        (sub) =>
-          sub.subjectDepartment?.toLowerCase() === "general" ||
-          sub.subjectDepartment?.toLowerCase() ===
-            selectedStudent.department?.toLowerCase()
-      );
-
-      return filteredSubjects.length > 0 ? (
-        filteredSubjects.map((sub) => (
-          <div key={sub.id} className="form-check">
-            <input
-              className="form-check-input"
-              type="checkbox"
-              id={`sub-${sub.id}`}
-              checked={selectedSubjectIds.includes(sub.id)}
-              onChange={() => {
-                setSelectedSubjectIds((prev) =>
-                  prev.includes(sub.id)
-                    ? prev.filter((id) => id !== sub.id)
-                    : [...prev, sub.id]
-                );
-              }}
-            />
-            <label
-              className="form-check-label"
-              htmlFor={`sub-${sub.id}`}
-            >
-              {sub.subjectName} ({sub.subjectCode}) —{" "}
-              <em>{sub.subjectDepartment}</em>
-            </label>
           </div>
-        ))
-      ) : (
-        <p className="text-muted">No subjects available.</p>
-      );
-    })()}
-  </div>
-</div>
+        )}
 
+        {/* Assign Subjects Modal */}
+        {showAssignSubjectsModal && (
+          <div
+            className="modal show d-block"
+            tabIndex="-1"
+            role="dialog"
+            style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+          >
+            <div className="modal-dialog" role="document">
+              <form onSubmit={handleAssignSubjects}>
+                <div className="modal-content">
+                  <div className="modal-header">
+                    <h5 className="modal-title">Assign Subjects to Student</h5>
+                    <button
+                      type="button"
+                      className="btn-close"
+                      onClick={() => setShowAssignSubjectsModal(false)}
+                      aria-label="Close"
+                    />
+                  </div>
+                  <div className="modal-body">
+                    {/* Select Student (Ant Design Select with search & virtualization) */}
+                    {/* Select Student (Ant Design Select with search & virtualization) */}
+                    <div className="mb-3">
+                      <label className="form-label">Select Student</label>
+                      <AntSelect
+                        showSearch
+                        showArrow
+                        allowClear
+                        placeholder="Search and select a student"
+                        style={{ width: "100%" }}
+                        optionFilterProp="label"
+                        onChange={(val) => setSelectedStudentId(val)}
+                        value={selectedStudentId}
+                        dropdownMatchSelectWidth={false}
+                        // ✅ Fix dropdown appearing under modal
+                        getPopupContainer={(triggerNode) =>
+                          triggerNode.parentNode
+                        }
+                        filterOption={(input, option) => {
+                          if (!option) return false;
+                          const label = String(
+                            option.label || ""
+                          ).toLowerCase();
+                          return label.includes(input.toLowerCase());
+                        }}
+                        virtual
+                      >
+                        {students.map((s) => (
+                          <Option
+                            key={s.id}
+                            value={s.id}
+                            // ✅ Include name + year level in label for search
+                            label={`${s.fullname} — ${
+                              s.yearLevel || "N/A"
+                            } Year`}
+                          >
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                              }}
+                            >
+                              <span>
+                                <strong>{s.fullname}</strong>
+                              </span>
+
+                              <small className="text-muted">
+                                <span>
+                                  {s.yearLevel || "N/A"} - {s.department || "-"}
+                                </span>
+                              </small>
+                            </div>
+                          </Option>
+                        ))}
+                      </AntSelect>
+                    </div>
+
+                    {/* Filter Subjects by Department */}
+                    <div className="mb-3">
+                      <label className="form-label">Select Subjects</label>
+                      <div style={{ maxHeight: "200px", overflowY: "auto" }}>
+                        {(() => {
+                          const selectedStudent = students.find(
+                            (s) => s.id === selectedStudentId
+                          );
+                          if (!selectedStudent)
+                            return (
+                              <p className="text-muted">
+                                Select a student first.
+                              </p>
+                            );
+
+                          // Use subjectDepartment instead of department
+                          const filteredSubjects = availableSubjects.filter(
+                            (sub) =>
+                              sub.subjectDepartment?.toLowerCase() ===
+                                "general" ||
+                              sub.subjectDepartment?.toLowerCase() ===
+                                selectedStudent.department?.toLowerCase()
+                          );
+
+                          return filteredSubjects.length > 0 ? (
+                            filteredSubjects.map((sub) => (
+                              <div key={sub.id} className="form-check">
+                                <input
+                                  className="form-check-input"
+                                  type="checkbox"
+                                  id={`sub-${sub.id}`}
+                                  checked={selectedSubjectIds.includes(sub.id)}
+                                  onChange={() => {
+                                    setSelectedSubjectIds((prev) =>
+                                      prev.includes(sub.id)
+                                        ? prev.filter((id) => id !== sub.id)
+                                        : [...prev, sub.id]
+                                    );
+                                  }}
+                                />
+                                <label
+                                  className="form-check-label"
+                                  htmlFor={`sub-${sub.id}`}
+                                >
+                                  {sub.subjectName} ({sub.subjectCode}) —{" "}
+                                  <em>{sub.subjectDepartment}</em>
+                                </label>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-muted">No subjects available.</p>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="modal-footer">
+                    <button type="submit" className="btn btn-primary">
+                      Assign Subjects
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => setShowAssignSubjectsModal(false)}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
           </div>
+        )}
 
-          <div className="modal-footer">
-            <button type="submit" className="btn btn-primary">
-              Assign Subjects
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => setShowAssignSubjectsModal(false)}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      </form>
-    </div>
-  </div>
-)}
-
-
-      <ToastContainer position="top-right" autoClose={3000} hideProgressBar />
-    </div>
+        <ToastContainer position="top-right" autoClose={3000} hideProgressBar />
+      </div>
     </Card>
-
   );
 }
 
