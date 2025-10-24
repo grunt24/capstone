@@ -94,11 +94,11 @@ const SidebarMenu = ({ collapsed }) => {
       //   icon: <RightOutlined />,
       //   label: <Link to="/teacher-grading">Input Grades</Link>,
       // },
-      {
-        key: "events",
-        icon: <RightOutlined />,
-        label: <Link to="/events">Events</Link>,
-      },
+      // {
+      //   key: "events",
+      //   icon: <RightOutlined />,
+      //   label: <Link to="/events">Events</Link>,
+      // },
       //       {
       //   key: "midterm",
       //   icon: <RightOutlined />,

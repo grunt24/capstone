@@ -10,12 +10,9 @@ import {
   Select,
   Space,
   message,
-  Spin,
 } from "antd";
 import axiosInstance from "../../../api/axiosInstance";
 import loginService from "../../../api/loginService";
-
-const { TabPane } = Tabs;
 
 export default function StudentsGradesTable() {
   const [studentsByDept, setStudentsByDept] = useState({});
@@ -30,34 +27,35 @@ export default function StudentsGradesTable() {
   const [calculating, setCalculating] = useState(false);
   const [userRole, setUserRole] = useState("");
 
+  // ✅ Updated: fetch from AcademicPeriods endpoint
   const fetchYearSemesterFilters = async () => {
     try {
-      const res = await axiosInstance.get("/GradeCalculation/grades-count");
-      const result = res.data;
-      if (result.success && result.data.academicYearSemesterFilters) {
-        const uniqueYears = new Set();
-        const uniqueSemesters = new Set();
+      const res = await axiosInstance.get("/AcademicPeriods/all");
+      const periods = res.data;
 
-        result.data.academicYearSemesterFilters.forEach((item) => {
-          const parts = item.split(" ");
-          const year = "AY " + parts[0];
-          const semester = parts.slice(1).join(" ");
-          uniqueYears.add(year);
-          uniqueSemesters.add(semester);
-        });
+      if (Array.isArray(periods) && periods.length > 0) {
+        const years = Array.from(
+          new Set(periods.map((p) => p.academicYear))
+        ).map((year) => ({ label: `AY ${year}`, value: year }));
 
-        setAcademicYears(
-          Array.from(uniqueYears).map((y) => ({ label: y, value: y }))
-        );
-        setSemesters(
-          Array.from(uniqueSemesters).map((s) => ({ label: s, value: s }))
-        );
+        const sems = Array.from(
+          new Set(periods.map((p) => p.semester))
+        ).map((sem) => ({ label: sem, value: sem }));
 
-        setSelectedAY(result.data.currentAcademicYear);
-        setSelectedSemester(result.data.currentSemester);
+        setAcademicYears(years);
+        setSemesters(sems);
+
+        // Preselect current academic year and semester
+        const currentPeriod = periods.find((p) => p.isCurrent);
+        if (currentPeriod) {
+          setSelectedAY(currentPeriod.academicYear);
+          setSelectedSemester(currentPeriod.semester);
+        }
 
         const userDetails = loginService.getUserDetails();
         if (userDetails?.role) setUserRole(userDetails.role);
+      } else {
+        message.warning("No academic periods found.");
       }
     } catch (err) {
       console.error(err);
@@ -134,16 +132,14 @@ export default function StudentsGradesTable() {
     try {
       if (type === "midterm") {
         await axiosInstance.post("/GradeCalculation/calculate-midterm-all");
-      } else {
+      } else if (type === "finals") {
         await axiosInstance.post("/GradeCalculation/calculate-finals-all");
       }
-
       message.success(
         `${type === "midterm" ? "Midterm" : "Finals"} grades calculated successfully.`
       );
-
       if (selectedAY && selectedSemester) {
-        await fetchGrades(selectedAY, selectedSemester);
+        fetchGrades(selectedAY, selectedSemester);
       }
     } catch (err) {
       console.error(err);
@@ -163,6 +159,16 @@ export default function StudentsGradesTable() {
     }
   }, [selectedAY, selectedSemester]);
 
+  const handleViewGrades = (student) => {
+    setSelectedStudent(student);
+    setIsModalVisible(true);
+  };
+
+  const handleClose = () => {
+    setIsModalVisible(false);
+    setSelectedStudent(null);
+  };
+
   const columns = [
     { title: "Student Name", dataIndex: "studentFullName", key: "studentFullName" },
     { title: "Year Level", dataIndex: "yearLevel", key: "yearLevel" },
@@ -170,90 +176,169 @@ export default function StudentsGradesTable() {
       title: "Action",
       key: "action",
       render: (_, record) => (
-        <Button type="primary" onClick={() => setSelectedStudent(record)}>
+        <Button type="primary" onClick={() => handleViewGrades(record)}>
           View Grades
         </Button>
       ),
     },
   ];
 
+  const quizColumns = [
+    { title: "Quiz", dataIndex: "label", key: "label" },
+    { title: "Score", dataIndex: "quizScore", key: "quizScore" },
+    { title: "Total", dataIndex: "totalQuizScore", key: "totalQuizScore" },
+  ];
+
+  const classItemsColumns = [
+    { title: "Class Standing Items", dataIndex: "label", key: "label" },
+    { title: "Score", dataIndex: "score", key: "score" },
+    { title: "Total", dataIndex: "total", key: "total" },
+  ];
+
   return (
-    <>
-      {/* 🔄 Full-screen loading overlay */}
-      {calculating && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            zIndex: 9999,
-            width: "100vw",
-            height: "100vh",
-            backgroundColor: "rgba(255, 255, 255, 0.8)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexDirection: "column",
-          }}
+    <Card>
+      <div style={{ padding: 24 }}>
+        <h2>Student Grades by Academic Year & Semester</h2>
+
+        <Space style={{ marginBottom: 16 }}>
+          <Select
+            placeholder="Select Academic Year"
+            style={{ width: 220 }}
+            options={academicYears}
+            value={selectedAY}
+            onChange={setSelectedAY}
+          />
+          <Select
+            placeholder="Select Semester"
+            style={{ width: 220 }}
+            options={semesters}
+            value={selectedSemester}
+            onChange={setSelectedSemester}
+          />
+          {userRole === "Admin" && (
+            <>
+              <Button
+                type="primary"
+                loading={calculating}
+                onClick={() => handleCalculateGrades("midterm")}
+              >
+                Calculate Midterm
+              </Button>
+              <Button
+                type="primary"
+                loading={calculating}
+                onClick={() => handleCalculateGrades("finals")}
+              >
+                Calculate Finals
+              </Button>
+            </>
+          )}
+        </Space>
+
+        <Tabs
+          type="card"
+          items={Object.entries(studentsByDept).map(([dept, yearLevels]) => ({
+            key: dept,
+            label: dept,
+            children: (
+              <Tabs
+                type="line"
+                items={Object.entries(yearLevels).map(([year, students]) => ({
+                  key: year,
+                  label: year,
+                  children: (
+                    <Table
+                      columns={columns}
+                      dataSource={students}
+                      rowKey="studentId"
+                      loading={loading}
+                      pagination={{ pageSize: 5 }}
+                    />
+                  ),
+                }))}
+              />
+            ),
+          }))}
+        />
+
+        <Modal
+          title={
+            selectedStudent
+              ? `${selectedStudent.studentFullName}'s Grades`
+              : "Grades"
+          }
+          open={isModalVisible}
+          onCancel={handleClose}
+          footer={null}
+          width={800}
         >
-          <Spin size="large" tip="Calculating..." />
-        </div>
-      )}
+          {selectedStudent && (
+            <Tabs
+              type="card"
+              items={selectedStudent.subjects.map((subject, idx) => ({
+                key: idx,
+                label: `${subject.subjectName} (${subject.subjectCode})`,
+                children: (
+                  <Row gutter={16}>
+                    <Col xs={24} md={12}>
+                      <Card title="Midterm Breakdown" variant="outlined">
+                        {subject.midterm ? (
+                          <>
+                            <p><strong>Calculated Midterm Grade:</strong> {subject.midterm.totalMidtermGrade ?? "N/A"}</p>
+                            <p><strong>Rounded Midterm Grade:</strong> {subject.midterm.totalMidtermGradeRounded ?? "N/A"}</p>
+                            <p><strong>Grade Point Equivalent:</strong> {subject.midterm.gradePointEquivalent ?? "N/A"}</p>
+                            <p><strong>Quiz PG:</strong> {subject.midterm.quizPG ?? "N/A"}</p>
+                            <p><strong>Recitation:</strong> {subject.midterm.recitationScore ?? "N/A"}</p>
+                            <p><strong>Attendance:</strong> {subject.midterm.attendanceScore ?? "N/A"}</p>
+                            <p><strong>Class Standing PG:</strong> {subject.midterm.classStandingPG ?? "N/A"}</p>
+                            <p><strong>Project:</strong> {subject.midterm.projectScore ?? "N/A"}</p>
+                            <p><strong>SEP:</strong> {subject.midterm.sepScore ?? "N/A"}</p>
 
-      <Card>
-        <div style={{ padding: 24 }}>
-          <h2>Student Grades by Academic Year & Semester</h2>
+                            {subject.midterm.quizzes?.length > 0 && (
+                              <Table columns={quizColumns} dataSource={subject.midterm.quizzes} pagination={false} rowKey="id" size="small" />
+                            )}
+                            {subject.midterm.classStandingItems?.length > 0 && (
+                              <Table columns={classItemsColumns} dataSource={subject.midterm.classStandingItems} pagination={false} rowKey="id" size="small" />
+                            )}
+                          </>
+                        ) : (
+                          <p>No midterm data available.</p>
+                        )}
+                      </Card>
+                    </Col>
+                    <Col xs={24} md={12}>
+                      <Card title="Finals Breakdown" variant="outlined">
+                        {subject.finals ? (
+                          <>
+                            <p><strong>Calculated Finals Grade:</strong> {subject.finals.totalFinalsGrade ?? "N/A"}</p>
+                            <p><strong>Rounded Finals Grade:</strong> {subject.finals.totalFinalsGradeRounded ?? "N/A"}</p>
+                            <p><strong>Grade Point Equivalent:</strong> {subject.finals.gradePointEquivalent ?? "N/A"}</p>
+                            <p><strong>Quiz PG:</strong> {subject.finals.quizPG ?? "N/A"}</p>
+                            <p><strong>Recitation:</strong> {subject.finals.recitationScore ?? "N/A"}</p>
+                            <p><strong>Attendance:</strong> {subject.finals.attendanceScore ?? "N/A"}</p>
+                            <p><strong>Class Standing PG:</strong> {subject.finals.classStandingPG ?? "N/A"}</p>
+                            <p><strong>Project:</strong> {subject.finals.projectScore ?? "N/A"}</p>
+                            <p><strong>SEP:</strong> {subject.finals.sepScore ?? "N/A"}</p>
 
-          <Space style={{ marginBottom: 16 }}>
-            <Select
-              placeholder="Select Academic Year"
-              style={{ width: 220 }}
-              options={academicYears}
-              value={selectedAY}
-              onChange={setSelectedAY}
+                            {subject.finals.quizzes?.length > 0 && (
+                              <Table columns={quizColumns} dataSource={subject.finals.quizzes} pagination={false} rowKey="id" size="small" />
+                            )}
+                            {subject.finals.classStandingItems?.length > 0 && (
+                              <Table columns={classItemsColumns} dataSource={subject.finals.classStandingItems} pagination={false} rowKey="id" size="small" />
+                            )}
+                          </>
+                        ) : (
+                          <p>No finals data available.</p>
+                        )}
+                      </Card>
+                    </Col>
+                  </Row>
+                ),
+              }))}
             />
-            <Select
-              placeholder="Select Semester"
-              style={{ width: 220 }}
-              options={semesters}
-              value={selectedSemester}
-              onChange={setSelectedSemester}
-            />
-
-            {userRole === "Admin" && (
-              <>
-                <Button type="primary" onClick={() => handleCalculateGrades("midterm")}>
-                  Calculate Midterm
-                </Button>
-                <Button type="primary" onClick={() => handleCalculateGrades("finals")}>
-                  Calculate Finals
-                </Button>
-              </>
-            )}
-          </Space>
-
-          {/* Department Tabs */}
-          <Tabs type="card">
-            {Object.entries(studentsByDept).map(([dept, yearLevels]) => (
-              <TabPane key={dept} tab={dept}>
-                <Tabs type="line">
-                  {Object.entries(yearLevels).map(([year, students]) => (
-                    <TabPane key={year} tab={year}>
-                      <Table
-                        columns={columns}
-                        dataSource={students}
-                        rowKey="studentId"
-                        loading={loading}
-                        pagination={{ pageSize: 5 }}
-                      />
-                    </TabPane>
-                  ))}
-                </Tabs>
-              </TabPane>
-            ))}
-          </Tabs>
-        </div>
-      </Card>
-    </>
+          )}
+        </Modal>
+      </div>
+    </Card>
   );
 }

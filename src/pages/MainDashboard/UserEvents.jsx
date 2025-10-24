@@ -40,8 +40,8 @@ function UserEvents() {
   );
 
   return (
-    <div>
-      <div className="row mb-3">
+    <div style={{fontSize: 12}}>
+      {/* <div className="row mb-3">
         <div className="col-md-6">
           <input
             className="form-control"
@@ -65,7 +65,7 @@ function UserEvents() {
             ))}
           </select>
         </div>
-      </div>
+      </div> */}
 
       <table className="table table-bordered table-hover">
         <thead className="table-light">
@@ -73,7 +73,7 @@ function UserEvents() {
             <th onClick={() => setSortAsc(prev => !prev)} style={{ cursor: 'pointer' }}>
               Event Description {sortAsc ? '▲' : '▼'}
             </th>
-            <th>Timestamp</th>
+            <th style={{width: 50}}>Timestamp</th>
           </tr>
         </thead>
         <tbody>

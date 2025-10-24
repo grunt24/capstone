@@ -112,18 +112,6 @@ function MainDashboard() {
 
   return (
     <>
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={24} sm={12} md={6}>
-          <Card title="Calculated Midterm Grade Count" bordered={false}>
-            {gradeInfo.midtermCount}
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card title="Calculated Finals Grade Count" bordered={false}>
-            {gradeInfo.finalCount}
-          </Card>
-        </Col>
-      </Row>
 
       {/* {userRole === 'Admin' && (
         <Row gutter={[16, 16]}>
@@ -169,66 +157,142 @@ function MainDashboard() {
       </Modal>
 
 <Row gutter={[16, 16]} style={{ marginTop: 40 }}>
-              {userRole === 'Admin' && (
-        <>
-<Col xs={24} sm={24} md={12}>
-  <Card title="User Roles Distribution" bordered={false}>
-    <div style={{ width: '100%', height: 400 }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <PieChart>
-          <Pie
-            data={data}
-            dataKey="count"
-            nameKey="role"
-            cx="50%"
-            cy="50%"
-            outerRadius={120}
-            fill="#8884d8"
-            label
-          >
-            {data.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-            ))}
-          </Pie>
-          <Tooltip />
-          <Legend />
-        </PieChart>
-      </ResponsiveContainer>
-    </div>
-  </Card>
-</Col>
-      </>
-            )}
+  {/* ✅ LEFT COLUMN FOR ADMIN */}
+  {userRole === 'Admin' && (
+    <Col xs={24} sm={24} md={12} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* User Roles Distribution */}
+      <Card title="User Roles Distribution" variant="bordered" style={{ flex: 1 }}>
+        <div style={{ width: '100%', height: 300 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={data}
+                dataKey="count"
+                nameKey="role"
+                cx="50%"
+                cy="50%"
+                outerRadius={120}
+                fill="#8884d8"
+                label
+              >
+                {data.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </Card>
 
-  {/* Right column: either UserEvents (Admin) or Teacher chart */}
-  <Col xs={24} sm={24} md={12}>
-    {userRole !== 'Teacher' && userRole !== 'User' ? (
-      <Card title="User Events" bordered={false}>
+      {/* Midterm + Finals Count */}
+      <Row gutter={[16, 16]}>
+        <Col xs={24} sm={12}>
+          <Card title="Calculated Midterm Grade Count" variant="bordered" style={{ height: '100%' }}>
+            <div style={{ fontSize: 24, textAlign: 'center', padding: '24px 0' }}>
+              {gradeInfo.midtermCount}
+            </div>
+          </Card>
+        </Col>
+        <Col xs={24} sm={12}>
+          <Card title="Calculated Finals Grade Count" variant="bordered" style={{ height: '100%' }}>
+            <div style={{ fontSize: 24, textAlign: 'center', padding: '24px 0' }}>
+              {gradeInfo.finalCount}
+            </div>
+          </Card>
+        </Col>
+      </Row>
+    </Col>
+  )}
+
+  {/* ✅ RIGHT COLUMN (Admin) or FULL ROW (Teacher) */}
+  <Col
+    xs={24}
+    sm={24}
+    md={userRole === 'Teacher' ? 24 : 12}
+    style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
+  >
+    {/* Admin: User Events (only once) */}
+    {userRole === 'Admin' && (
+      <Card variant="bordered" style={{ flex: 1 }}>
         <UserEvents />
       </Card>
-    ) : (
-      userRole === 'Teacher' && teacherChartData.length > 0 && (
-        <Card title="My Students Per Subject" bordered={false}>
-          <div style={{ width: '100%', height: 400 }}>
+    )}
+
+    {/* Teacher: Layout changes */}
+    {userRole === 'Teacher' && (
+      <>
+        {/* User Role Distribution full width */}
+        <Card title="User Roles Distribution" variant="bordered">
+          <div style={{ width: '100%', height: 300 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={teacherChartData}
-                margin={{ top: 20, right: 30, bottom: 5, left: 0 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="subjectName" />
-                <YAxis allowDecimals={false} />
+              <PieChart>
+                <Pie
+                  data={data}
+                  dataKey="count"
+                  nameKey="role"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={120}
+                  fill="#8884d8"
+                  label
+                >
+                  {data.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="studentCount" name="Students" fill="#82ca9d" />
-              </BarChart>
+              </PieChart>
             </ResponsiveContainer>
           </div>
         </Card>
-      )
+
+        {/* Midterm + Finals Count side by side */}
+        <Row gutter={[16, 16]}>
+          <Col xs={24} sm={12}>
+            <Card title="Calculated Midterm Grade Count" variant="bordered">
+              <div style={{ fontSize: 24, textAlign: 'center', padding: '24px 0' }}>
+                {gradeInfo.midtermCount}
+              </div>
+            </Card>
+          </Col>
+          <Col xs={24} sm={12}>
+            <Card title="Calculated Finals Grade Count" variant="bordered">
+              <div style={{ fontSize: 24, textAlign: 'center', padding: '24px 0' }}>
+                {gradeInfo.finalCount}
+              </div>
+            </Card>
+          </Col>
+        </Row>
+
+        {/* Teacher Chart */}
+        {teacherChartData.length > 0 && (
+          <Card title="My Students Per Subject" variant="bordered">
+            <div style={{ width: '100%', height: 400 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={teacherChartData}
+                  margin={{ top: 20, right: 30, bottom: 5, left: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="subjectName" />
+                  <YAxis allowDecimals={false} />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="studentCount" name="Students" fill="#82ca9d" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+        )}
+      </>
     )}
   </Col>
 </Row>
+
+
 
       {userRole === 'Teacher' && (
         <>
