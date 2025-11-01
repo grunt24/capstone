@@ -250,44 +250,49 @@ function StudentSubject() {
   };
 
   // Filtering, sorting, and pagination logic.
-  const filteredStudents = students
-    .filter(
-      (s) =>
-        s.fullname.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.yearLevel?.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .sort((a, b) => {
-      if (sortField === "fullname")
-        return sortAsc
-          ? a.fullname.localeCompare(b.fullname)
-          : b.fullname.localeCompare(a.fullname);
-      if (sortField === "yearLevel") {
-        const order = ["1st year", "2nd year", "3rd year", "4th year"];
-        const getIndex = (y) => order.indexOf(y?.toLowerCase?.() || "");
-        return sortAsc
-          ? getIndex(a.yearLevel) - getIndex(b.yearLevel)
-          : getIndex(b.yearLevel) - getIndex(a.yearLevel);
-      }
-      return 0;
-    });
+const filteredStudents = students
+  .filter((s) => {
+    const term = searchTerm.toLowerCase();
+    const nameMatch = s.fullname?.toLowerCase().includes(term);
+    const yearMatch = s.yearLevel?.toLowerCase().includes(term);
+    return nameMatch || yearMatch;
+  })
+  .sort((a, b) => {
+    if (sortField === "fullname") {
+      return sortAsc
+        ? a.fullname.localeCompare(b.fullname)
+        : b.fullname.localeCompare(a.fullname);
+    }
+    if (sortField === "yearLevel") {
+      const order = ["1st year", "2nd year", "3rd year", "4th year"];
+      const getIndex = (y) => order.indexOf(y?.toLowerCase?.() || "");
+      return sortAsc
+        ? getIndex(a.yearLevel) - getIndex(b.yearLevel)
+        : getIndex(b.yearLevel) - getIndex(a.yearLevel);
+    }
+    return 0;
+  });
 
-  const totalPages = Math.ceil(filteredStudents.length / itemsPerPage);
-  const displayedStudents = filteredStudents.slice(
-    (currentPage - 1) * itemsPerPage,
-    itemsPerPage === "All"
-      ? filteredStudents.length
-      : currentPage * itemsPerPage
-  );
+// ✅ Apply pagination AFTER filtering
+const totalPages = Math.ceil(filteredStudents.length / itemsPerPage);
+const displayedStudents =
+  itemsPerPage === "All"
+    ? filteredStudents
+    : filteredStudents.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+      );
 
-  // Group students by department->year for tabs
-  const grouped = students.reduce((acc, s) => {
-    const dept = s.department || "Unknown Department";
-    const year = s.yearLevel || "Unknown Year";
-    if (!acc[dept]) acc[dept] = {};
-    if (!acc[dept][year]) acc[dept][year] = [];
-    acc[dept][year].push(s);
-    return acc;
-  }, {});
+// ✅ Group AFTER filtering so search affects results properly
+const grouped = filteredStudents.reduce((acc, s) => {
+  const dept = s.department || "Unknown Department";
+  const year = s.yearLevel || "Unknown Year";
+  if (!acc[dept]) acc[dept] = {};
+  if (!acc[dept][year]) acc[dept][year] = [];
+  acc[dept][year].push(s);
+  return acc;
+}, {});
+
 
   return (
     <Card>

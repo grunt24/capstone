@@ -15,6 +15,7 @@ import MidtermGrades from "./pages/MainDashboard/MidtermGrades.jsx";
 import FinalGrade from "./pages/MainDashboard/FinalGrades.jsx";
 import ViewingOfGrades from "./pages/MainDashboard/ViewingOfGrades.jsx";
 import TeacherStudents from "./pages/MainDashboard/Teacher/TeacherStudents.jsx";
+import AcademicPeriods from "./pages/MainDashboard/AcademicPeriods.jsx";
 
 const router = createBrowserRouter([
   {
@@ -34,6 +35,8 @@ const router = createBrowserRouter([
           { path: "/finals", element: <FinalGrade /> },
           { path: "/view-grades", element: <ViewingOfGrades /> },
           { path: "/teacher-students", element: <TeacherStudents /> },
+          { path: "/academic-periods", element: <AcademicPeriods /> },
+
         ],
       }
     ],

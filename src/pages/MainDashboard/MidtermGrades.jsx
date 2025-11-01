@@ -9,6 +9,7 @@ import {
   Typography,
   Card,
   Tag,
+  Divider,
 } from "antd";
 import { SaveOutlined, PlusOutlined } from "@ant-design/icons";
 import { toast, ToastContainer } from "react-toastify";
@@ -26,14 +27,48 @@ export default function MidtermGradesTableContent() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editForm] = Form.useForm();
-  const [selectedRowKeys, setSelectedRowKeys] = useState([]);
-  const [quizCount, setQuizCount] = useState(5);
-  const [classStandingCount, setClassStandingCount] = useState(5);
-
-  // 🟢 Now per-subject totals (instead of global)
+  const [quizCountBySubject, setQuizCountBySubject] = useState({});
+  const [classStandingCountBySubject, setClassStandingCountBySubject] = useState({});
   const [subjectTotals, setSubjectTotals] = useState({});
+   const academicPeriod = loginService.getAcademicPeriod(); // get academic period info
+  const academicPeriodId = academicPeriod?.academicYearId; // ID for API
+  const academicYear = academicPeriod?.academicYear; // ID for API
+  const semester = academicPeriod?.semester; // ID for API
+    const [calculating, setCalculating] = useState(false);
+    const [selectedAY, setSelectedAY] = useState(null);
 
-  const academicPeriod = loginService.getAcademicPeriod();
+    const [selectedSemester, setSelectedSemester] = useState(null);
+
+const handleCalculateGrades = async (type) => {
+  setCalculating(true);
+  try {
+    if (type === "midterm") {
+      await axiosInstance.post("/GradeCalculation/calculate-midterm-all");
+    } else if (type === "finals") {
+      await axiosInstance.post("/GradeCalculation/calculate-finals-all");
+    }
+
+    message.success(
+      `${type === "midterm" ? "Midterm" : "Finals"} grades calculated successfully.`
+    );
+
+    // ✅ Refresh data after calculation
+    await fetchAllData();
+
+  } catch (err) {
+    console.error(err);
+    message.error("Failed to calculate grades.");
+  } finally {
+    setCalculating(false);
+  }
+};
+
+useEffect(() => {
+  if (academicPeriod) {
+    setSelectedAY(academicPeriod.academicYear);
+    setSelectedSemester(academicPeriod.semester);
+  }
+}, [academicPeriod]);
 
   useEffect(() => {
     fetchAllData();
@@ -46,14 +81,17 @@ export default function MidtermGradesTableContent() {
       const fetchedGrades = gradesResp.data?.data || [];
       setGrades(fetchedGrades);
 
-      // Initialize per-subject totals
+      // Initialize counts
+      const quizCounts = {};
+      const csCounts = {};
       const totalsBySubject = {};
 
       fetchedGrades.forEach((g) => {
-        const subj = g.subjectName;
+        if (!quizCounts[g.subjectName]) quizCounts[g.subjectName] = 5;
+        if (!csCounts[g.subjectName]) csCounts[g.subjectName] = 5;
 
-        if (!totalsBySubject[subj]) {
-          totalsBySubject[subj] = {
+        if (!totalsBySubject[g.subjectName]) {
+          totalsBySubject[g.subjectName] = {
             quizTotals: {},
             classStandingTotals: {},
             prelimTotal: g.prelimTotal || 0,
@@ -62,16 +100,18 @@ export default function MidtermGradesTableContent() {
         }
 
         (g.quizzes || []).forEach((q, idx) => {
-          totalsBySubject[subj].quizTotals[idx + 1] =
-            q.totalQuizScore || totalsBySubject[subj].quizTotals[idx + 1] || 0;
+          totalsBySubject[g.subjectName].quizTotals[idx + 1] =
+            q.totalQuizScore || 0;
         });
 
         (g.classStandingItems || []).forEach((c, idx) => {
-          totalsBySubject[subj].classStandingTotals[idx + 1] =
-            c.total || totalsBySubject[subj].classStandingTotals[idx + 1] || 0;
+          totalsBySubject[g.subjectName].classStandingTotals[idx + 1] =
+            c.total || 0;
         });
       });
 
+      setQuizCountBySubject(quizCounts);
+      setClassStandingCountBySubject(csCounts);
       setSubjectTotals(totalsBySubject);
     } catch (err) {
       console.error("Failed to load data:", err);
@@ -80,9 +120,6 @@ export default function MidtermGradesTableContent() {
       setLoading(false);
     }
   };
-
-  const addQuizColumn = () => setQuizCount((prev) => prev + 1);
-  const addClassStandingColumn = () => setClassStandingCount((prev) => prev + 1);
 
   const saveAll = async () => {
     try {
@@ -112,8 +149,15 @@ export default function MidtermGradesTableContent() {
             midtermTotal: 0,
           };
 
+                  const prelimTotal = subjTotals.prelimTotal;
+        const midtermTotal = subjTotals.midtermTotal;
+
           return {
             ...existingStudent,
+            academicPeriodId, 
+            academicYear, 
+            semester, 
+
             attendanceScore:
               formItem.attendanceScore ?? existingStudent.attendanceScore,
             recitationScore:
@@ -125,6 +169,11 @@ export default function MidtermGradesTableContent() {
                 : 0,
             prelimScore: formItem.prelimScore ?? existingStudent.prelimScore,
             midtermScore: formItem.midtermScore ?? existingStudent.midtermScore,
+
+                      prelimTotal,
+          midtermTotal,
+
+
             quizzes: Object.entries(formItem)
               .filter(([key, val]) => key.startsWith("quiz") && val?.quizScore !== undefined)
               .map(([key, val]) => {
@@ -151,10 +200,6 @@ export default function MidtermGradesTableContent() {
                     0,
                 };
               }),
-            prelimTotal:
-              subjTotals.prelimTotal || existingStudent.prelimTotal,
-            midtermTotal:
-              subjTotals.midtermTotal || existingStudent.midtermTotal,
           };
         })
         .filter(Boolean);
@@ -180,101 +225,104 @@ export default function MidtermGradesTableContent() {
       (g) => g.department?.toUpperCase() === "BSED"
     );
 
+    const quizCount = quizCountBySubject[subjectName] || 3;
+    const csCount = classStandingCountBySubject[subjectName] || 3;
     const totals = subjectTotals[subjectName] || {
+      quizTotals: {},
+      classStandingTotals: {},
+    };
+
+const updateTotals = (field, index, val) => {
+  setSubjectTotals((prev) => {
+    const currentSubject = prev[subjectName] || {
       quizTotals: {},
       classStandingTotals: {},
       prelimTotal: 0,
       midtermTotal: 0,
     };
 
-    const updateTotals = (field, index, val) => {
-      setSubjectTotals((prev) => ({
+    // Handle direct totals (prelimTotal, midtermTotal)
+    if (field === "prelimTotal" || field === "midtermTotal") {
+      return {
         ...prev,
         [subjectName]: {
-          ...prev[subjectName],
-          [field]: {
-            ...prev[subjectName]?.[field],
-            [index]: val,
-          },
+          ...currentSubject,
+          [field]: val || 0,
         },
+      };
+    }
+
+    // Handle nested totals (quizTotals, classStandingTotals)
+    return {
+      ...prev,
+      [subjectName]: {
+        ...currentSubject,
+        [field]: {
+          ...currentSubject[field],
+          [index]: val || 0,
+        },
+      },
+    };
+  });
+};
+
+
+    const addQuizColumn = () => {
+      setQuizCountBySubject((prev) => ({
+        ...prev,
+        [subjectName]: (prev[subjectName] || 3) + 1,
       }));
     };
 
-    const updateSingleTotal = (key, val) => {
-      setSubjectTotals((prev) => ({
+    const addClassStandingColumn = () => {
+      setClassStandingCountBySubject((prev) => ({
         ...prev,
-        [subjectName]: {
-          ...prev[subjectName],
-          [key]: val,
-        },
+        [subjectName]: (prev[subjectName] || 3) + 1,
       }));
     };
 
-    const columns = [
-      {
-        title: "Student #",
-        dataIndex: "studentNumber",
-        key: "studentNumber",
-        width: 120,
-        fixed: "left",
-      },
-      {
-        title: "Name",
-        dataIndex: "studentFullName",
-        key: "studentFullName",
-        width: 200,
-        fixed: "left",
-      },
-      // Quizzes
-      ...Array.from({ length: quizCount }, (_, i) => ({
-        title: (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-            <span>{`Quiz ${i + 1}`}</span>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
-              <span>Total:</span>
-              <InputNumber
-                min={1}
-                value={totals.quizTotals[i + 1] || ""}
-                onChange={(val) => updateTotals("quizTotals", i + 1, val)}
-                style={{ width: 70 }}
-                placeholder="Total"
-              />
-            </div>
-          </div>
-        ),
-        render: (_, record) => (
-          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <Form.Item
-              name={[record.id, `quiz${i + 1}`, "quizScore"]}
-              initialValue={record.quizzes?.[i]?.quizScore}
-              style={{ margin: 0 }}
-            >
-              <InputNumber min={0} style={{ width: 60 }} placeholder="Score" />
-            </Form.Item>
-            {totals.quizTotals[i + 1] ? <span>/ {totals.quizTotals[i + 1]}</span> : null}
-          </div>
-        ),
-      })),
+const quizColumns = Array.from({ length: quizCount }, (_, i) => ({
+  title: `Q${i + 1}`,
+    align: "center",
+  children: [
+    {
+      title: (
+        <InputNumber
+          min={1}
+          value={totals.quizTotals[i + 1] || ""}
+          onChange={(val) => updateTotals("quizTotals", i + 1, val)}
+          style={{ width: 70 }}
+          placeholder="Total"
+        />
+      ),
+        align: "center",
+      render: (_, record) => (
+        <Form.Item
+          name={[record.id, `quiz${i + 1}`, "quizScore"]}
+          initialValue={record.quizzes?.[i]?.quizScore}
+          style={{ margin: 0 }}
+        >
+          <InputNumber min={0} style={{ width: 60, textAlign: "center" }} placeholder="Score" />
+        </Form.Item>
+      ),
+    },
+  ],
+}));
 
-      // Class Standing
-      ...Array.from({ length: classStandingCount }, (_, i) => ({
-        title: (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-            <span>{`Class Standing ${i + 1}`}</span>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
-              <span>Total:</span>
-              <InputNumber
-                min={1}
-                value={totals.classStandingTotals[i + 1] || ""}
-                onChange={(val) => updateTotals("classStandingTotals", i + 1, val)}
-                style={{ width: 70 }}
-                placeholder="Total"
-              />
-            </div>
-          </div>
-        ),
-        render: (_, record) => (
-          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+    const classStandingColumns = Array.from({ length: csCount }, (_, i) => ({
+      title: `CS${i + 1}`,
+      children: [
+        {
+          title: (
+            <InputNumber
+              min={1}
+              value={totals.classStandingTotals[i + 1] || ""}
+              onChange={(val) => updateTotals("classStandingTotals", i + 1, val)}
+              style={{ width: 70 }}
+              placeholder="Total"
+            />
+          ),
+          render: (_, record) => (
             <Form.Item
               name={[record.id, `classStanding${i + 1}`, "score"]}
               initialValue={record.classStandingItems?.[i]?.score}
@@ -282,134 +330,255 @@ export default function MidtermGradesTableContent() {
             >
               <InputNumber min={0} style={{ width: 60 }} placeholder="Score" />
             </Form.Item>
-            {totals.classStandingTotals[i + 1] ? (
-              <span>/ {totals.classStandingTotals[i + 1]}</span>
-            ) : null}
-          </div>
-        ),
-      })),
-
-      // Other Scores
-      ...[
-        "recitationScore",
-        "attendanceScore",
-        "projectScore",
-        ...(isBSED ? ["sepScore"] : []),
-      ].map((field) => ({
-        title: field,
-        key: field,
-        render: (_, record) => (
-          <Form.Item
-            name={[record.id, field]}
-            initialValue={record[field]}
-            style={{ margin: 0 }}
-          >
-            <InputNumber min={0} step={0.01} style={{ width: 90 }} placeholder={field} />
-          </Form.Item>
-        ),
-      })),
-
-      // Prelim Total
-      {
-        title: (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-            <span>Prelim Total</span>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
-              <span>Total:</span>
-              <InputNumber
-                min={1}
-                value={totals.prelimTotal || ""}
-                onChange={(val) => updateSingleTotal("prelimTotal", val)}
-                style={{ width: 80 }}
-                placeholder="Total"
-              />
-            </div>
-          </div>
-        ),
-        key: "prelimTotal",
-        render: (_, record) => (
-          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <Form.Item
-              name={[record.id, "prelimScore"]}
-              initialValue={record.prelimScore}
-              style={{ margin: 0 }}
-            >
-              <InputNumber min={0} style={{ width: 80 }} placeholder="Score" />
-            </Form.Item>
-            {totals.prelimTotal ? <span>/ {totals.prelimTotal}</span> : null}
-          </div>
-        ),
-      },
-
-      // Midterm Total
-      {
-        title: (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-            <span>Midterm Total</span>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
-              <span>Total:</span>
-              <InputNumber
-                min={1}
-                value={totals.midtermTotal || ""}
-                onChange={(val) => updateSingleTotal("midtermTotal", val)}
-                style={{ width: 80 }}
-                placeholder="Total"
-              />
-            </div>
-          </div>
-        ),
-        key: "midtermTotal",
-        render: (_, record) => (
-          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <Form.Item
-              name={[record.id, "midtermScore"]}
-              initialValue={record.midtermScore}
-              style={{ margin: 0 }}
-            >
-              <InputNumber min={0} style={{ width: 80 }} placeholder="Score" />
-            </Form.Item>
-            {totals.midtermTotal ? <span>/ {totals.midtermTotal}</span> : null}
-          </div>
-        ),
-      },
-
-      {
-        title: "Total Grade",
-        dataIndex: "totalMidtermGrade",
-        key: "totalMidtermGrade",
-        width: 120,
-        fixed: "right",
-        render: (grade) =>
-          grade >= 75 ? (
-            <Tag color="green">{grade}</Tag>
-          ) : (
-            <Tag color="red">{grade}</Tag>
           ),
+        },
+      ],
+    }));
+
+const calculateOverallTotal = (data, key) => {
+  return data.reduce((sum, record) => {
+    const total = (record[key] || []).reduce(
+      (s, item) => s + (item.score || 0),
+      0
+    );
+    return sum + total;
+  }, 0);
+};
+
+
+const columns = [
+  { title: "Student #", dataIndex: "studentNumber", key: "studentNumber" },
+  { title: "Name", dataIndex: "studentFullName", key: "studentFullName",fixed: "left", },
+  { title: "QUIZZES", children: quizColumns },
+{
+  title: (
+    <div>
+      <Button icon={<PlusOutlined />} size="small" onClick={addQuizColumn}>
+        Add Quiz
+      </Button>
+    </div>
+  ),
+    align: "center",
+  children: [
+    {
+      title: (
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontWeight: "bold" }}>Total Quiz</div>
+          <div>
+            <Tag color="green" style={{ fontWeight: 600, marginLeft: 6 }}>
+              OTQ:{" "}
+              {Object.values(totals.quizTotals || {}).reduce(
+                (sum, val) => sum + (Number(val) || 0),
+                0
+              )}
+            </Tag>
+          </div>
+        </div>
+      ),
+          align: "center",
+      render: (_, record) => {
+        const total = (record.quizzes || []).reduce(
+          (sum, q) => sum + (q.quizScore || 0),
+          0
+        );
+        return <Tag color="blue">{total}</Tag>;
       },
-    ];
+    },
+  ],
+},
+
+  { title: "CLASS STANDING", children: classStandingColumns },
+{
+  title: (
+    <Button
+      icon={<PlusOutlined />}
+      size="small"
+      onClick={addClassStandingColumn}
+    >
+      Add Class Standing
+    </Button>
+  ),
+  children: [
+    {
+      title: (
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontWeight: "bold" }}>Total CS</div>
+          <div>
+            <Tag color="green" style={{ fontWeight: 600, marginLeft: 6 }}>
+              OCS:{" "}
+              {Object.values(totals.classStandingTotals || {}).reduce(
+                (sum, val) => sum + (Number(val) || 0),
+                0
+              )}
+            </Tag>
+          </div>
+        </div>
+      ),
+      render: (_, record) => {
+        const total = (record.classStandingItems || []).reduce(
+          (sum, cs) => sum + (cs.score || 0),
+          0
+        );
+        return <Tag color="purple">{total}</Tag>;
+      },
+    },
+  ],
+},
+
+    {
+    title: "Recitation",
+    render: (_, record) => (
+      <Form.Item
+        name={[record.id, "recitationScore"]}
+        initialValue={record.recitationScore}
+        style={{ margin: 0 }}
+      >
+        <InputNumber min={0} style={{ width: 70 }} />
+      </Form.Item>
+    ),
+  },
+  {
+    title: "Attendance",
+    render: (_, record) => (
+      <Form.Item
+        name={[record.id, "attendanceScore"]}
+        initialValue={record.attendanceScore}
+        style={{ margin: 0 }}
+      >
+        <InputNumber min={0} style={{ width: 70 }} />
+      </Form.Item>
+    ),
+  },
+  ...(isBSED
+    ? [
+        {
+          title: "SEP",
+          render: (_, record) => (
+            <Form.Item
+              name={[record.id, "sepScore"]}
+              initialValue={record.sepScore}
+              style={{ margin: 0 }}
+            >
+              <InputNumber min={0} style={{ width: 70 }} />
+            </Form.Item>
+          ),
+        },
+      ]
+    : []),
+  {
+    title: "Project",
+    render: (_, record) => (
+      <Form.Item
+        name={[record.id, "projectScore"]}
+        initialValue={record.projectScore}
+        style={{ margin: 0 }}
+      >
+        <InputNumber min={0} style={{ width: 70 }} />
+      </Form.Item>
+    ),
+  },
+{
+  title: "Prelim",
+  children: [
+    {
+      title: (
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontWeight: "bold" }}>Prelim Total</div>
+          <InputNumber
+            min={0}
+            value={totals.prelimTotal || 0}
+            onChange={(val) => updateTotals("prelimTotal", null, val)}
+            style={{ width: 70 }}
+          />
+        </div>
+      ),
+      render: (_, record) => (
+        <Form.Item
+          name={[record.id, "prelimScore"]}
+          initialValue={record.prelimScore}
+          style={{ margin: 0 }}
+        >
+          <InputNumber min={0} style={{ width: 70 }} />
+        </Form.Item>
+      ),
+    },
+  ],
+},
+{
+  title: "Midterm",
+  children: [
+    {
+      title: (
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontWeight: "bold" }}>Midterm Total</div>
+          <InputNumber
+            min={0}
+            value={totals.midtermTotal || 0}
+            onChange={(val) => updateTotals("midtermTotal", null, val)}
+            style={{ width: 70 }}
+          />
+        </div>
+      ),
+      render: (_, record) => (
+        <Form.Item
+          name={[record.id, "midtermScore"]}
+          initialValue={record.midtermScore}
+          style={{ margin: 0 }}
+        >
+          <InputNumber min={0} style={{ width: 70 }} />
+        </Form.Item>
+      ),
+    },
+  ],
+},
+
+{
+  title: (
+    <div style={{ textAlign: "center" }}>
+      <div style={{ fontWeight: "bold" }}>Total Score</div>
+      <Tag color="green" style={{ fontWeight: 600, marginTop: 4 }}>
+        TS: {(totals.prelimTotal || 0) + (totals.midtermTotal || 0)}
+      </Tag>
+    </div>
+  ),
+  render: (_, record) => {
+    const prelim = record.prelimScore || 0;
+    const midterm = record.midtermScore || 0;
+    const total = prelim + midterm;
+    return (
+      <Tag color="purple" style={{ fontWeight: 600 }}>
+        {total}
+      </Tag>
+    );
+  },
+},
+
+
+  { title: "Midterm Grade", dataIndex: "totalMidtermGrade", key: "totalMidtermGrade",fixed: "right", },
+  { title: "Equivalent", dataIndex: "gradePointEquivalent", key: "gradePointEquivalent",fixed: "right", },
+
+];
+
 
     return (
       <Card
         key={subjectName}
-        title={<Title level={4}>{subjectName}</Title>}
-        style={{
-          marginBottom: 24,
-          boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-          borderRadius: 8,
-        }}
+        title={
+          <Title level={4} style={{ margin: 0 }}>
+            {subjectName}
+          </Title>
+        }
+        style={{ marginBottom: 32 }}
       >
         <Form form={editForm} component={false}>
           <Table
             bordered
             rowKey="id"
             dataSource={subjectGrades}
-            columns={columns}
+  columns={columns.map(col => ({ ...col, align: "center" }))}
             pagination={false}
-            scroll={{ x: 4000, y: 500 }}
-            // rowSelection={{
-            //   selectedRowKeys,
-            //   onChange: (keys) => setSelectedRowKeys(keys),
-            // }}
+            scroll={{ x: 3000, y: 500 }}
+            style={{ textAlign: "center" }}
           />
         </Form>
       </Card>
@@ -422,16 +591,29 @@ export default function MidtermGradesTableContent() {
         <GradePercentage />
       </div>
 
-      <div style={{ marginBottom: 16, display: "flex", gap: 10, flexWrap: "wrap" }}>
-        <Button type="primary" icon={<SaveOutlined />} onClick={saveAll} loading={saving}>
+      <div style={{ marginBottom: 16 }}>
+        <Button
+          type="primary"
+          icon={<SaveOutlined />}
+          onClick={saveAll}
+          loading={saving}
+        >
           Save All Scores
         </Button>
-        <Button icon={<PlusOutlined />} onClick={addQuizColumn}>
-          + Add Quiz
-        </Button>
-        <Button icon={<PlusOutlined />} onClick={addClassStandingColumn}>
-          + Add Class Standing
-        </Button>
+                      <Button
+                        type="primary"
+                        loading={calculating}
+                        onClick={() => handleCalculateGrades("midterm")}
+                      >
+                        Calculate Midterm
+                      </Button>
+                      <Button
+                        type="primary"
+                        loading={calculating}
+                        onClick={() => handleCalculateGrades("finals")}
+                      >
+                        Calculate Finals
+                      </Button>
       </div>
 
       <h5>

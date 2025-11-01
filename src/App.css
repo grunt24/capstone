@@ -3,3 +3,10 @@
   text-decoration: none !important;
   color: inherit; /* keep default color */
 }
+
+.ant-table-thead > tr > th {
+  background-color: #f9fafb !important;
+}
+.ant-input-number {
+  border-radius: 6px;
+}

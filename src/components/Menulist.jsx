@@ -11,14 +11,35 @@ const SidebarMenu = ({ collapsed }) => {
   const [semester, setSemester] = useState("");
 
   useEffect(() => {
+    // Get user info from localStorage
     const userDetails = localStorage.getItem("userDetails");
     if (userDetails) {
       const parsed = JSON.parse(userDetails);
       setUserName(parsed.fullname);
       setRole(parsed.role);
-      setAcademicYear(parsed.academicYear);
-      setSemester(parsed.semester);
     }
+
+    // Fetch current academic period from API
+    const fetchAcademicPeriod = async () => {
+      try {
+        const response = await fetch("https://localhost:7255/api/AcademicPeriods/current", {
+          method: "GET",
+          headers: {
+            accept: "*/*"
+          }
+        });
+
+        if (!response.ok) throw new Error("Failed to fetch academic period");
+
+        const data = await response.json();
+        setAcademicYear(data.academicYear); // "2025-2026"
+        setSemester(data.semester);         // "Second"
+      } catch (err) {
+        console.error("Error fetching academic period:", err);
+      }
+    };
+
+    fetchAcademicPeriod();
   }, []);
 
   // Menu for all roles
@@ -51,17 +72,6 @@ const SidebarMenu = ({ collapsed }) => {
         icon: <RightOutlined />,
         label: <Link to="/finals" style={{ textDecoration: "none" }}>Student Final Grades</Link>,
       },
-      // {key: "viewing",icon: <RightOutlined />,label: <Link to="/view-grades">View Grades</Link>},
-      // {
-      //   key: "students",
-      //   icon: <RightOutlined />,
-      //   label: <Link to="/students">Student Subjects</Link>,
-      // },
-      // {
-      //   key: "teacherGrading",
-      //   icon: <RightOutlined />,
-      //   label: <Link to="/teacher-grading">Input Grades</Link>,
-      // },
       {
         key: "myStudents",
         icon: <RightOutlined />,
@@ -89,23 +99,16 @@ const SidebarMenu = ({ collapsed }) => {
         icon: <RightOutlined />,
         label: <Link to="/students">Students</Link>,
       },
-      // {
-      //   key: "teacherGrading",
-      //   icon: <RightOutlined />,
-      //   label: <Link to="/teacher-grading">Input Grades</Link>,
-      // },
-      // {
-      //   key: "events",
-      //   icon: <RightOutlined />,
-      //   label: <Link to="/events">Events</Link>,
-      // },
-      //       {
-      //   key: "midterm",
-      //   icon: <RightOutlined />,
-      //   label: <Link to="/midterm">Student Midterm Grades</Link>,
-      // },
-      // {key: "finals",icon: <RightOutlined />,label: <Link to="/finals">Student Final Grades</Link>},
-      {key: "viewing",icon: <RightOutlined />,label: <Link to="/view-grades">View Grades</Link>},
+      {
+        key: "viewing",
+        icon: <RightOutlined />,
+        label: <Link to="/view-grades">View Grades</Link>,
+      },
+            {
+        key: "academicPeriods",
+        icon: <RightOutlined />,
+        label: <Link to="/academic-periods">Academic Periods</Link>,
+      },
     ],
     Superadmin: [
       {
@@ -128,22 +131,6 @@ const SidebarMenu = ({ collapsed }) => {
         icon: <RightOutlined />,
         label: <Link to="/students">Students</Link>,
       },
-      // {
-      //   key: "teacherGrading",
-      //   icon: <RightOutlined />,
-      //   label: <Link to="/teacher-grading">Input Grades</Link>,
-      // },
-      // {
-      //   key: "events",
-      //   icon: <RightOutlined />,
-      //   label: <Link to="/events">Events</Link>,
-      // },
-      // {
-      //   key: "midterm",
-      //   icon: <RightOutlined />,
-      //   label: <Link to="/midterm">Student Midterm Grades</Link>,
-      // },
-      // {key: "finals",icon: <RightOutlined />,label: <Link to="/finals">Student Final Grades</Link>},
       {
         key: "viewing",
         icon: <RightOutlined />,
