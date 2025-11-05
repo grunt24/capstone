@@ -115,7 +115,7 @@ const TeacherStudents = () => {
             <Card
               key={subject.subjectId}
               title={`${subject.subjectName} (${subject.subjectCode})`}
-              bordered
+              variant="outlined"
               style={{
                 width: '100%',
                 boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
@@ -129,7 +129,7 @@ const TeacherStudents = () => {
                   columns={studentColumns}
                   dataSource={subject.students}
                   pagination={{ pageSize: 5 }}
-                  bordered
+                  variant
                   scroll={{ x: true }}
                 />
               )}

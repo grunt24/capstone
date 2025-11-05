@@ -143,7 +143,7 @@ function MainDashboard() {
       {/* Modal to show students */}
       <Modal
         title={yearDeptModal.title}
-        visible={yearDeptModal.visible}
+        open={yearDeptModal.visible}
         width={800}
         onCancel={() => setYearDeptModal({ visible: false, students: [], title: '' })}
         footer={null}
@@ -161,7 +161,7 @@ function MainDashboard() {
   {userRole === 'Admin' && (
     <Col xs={24} sm={24} md={12} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {/* User Roles Distribution */}
-      <Card title="User Roles Distribution" variant="bordered" style={{ flex: 1 }}>
+      <Card title="User Roles Distribution" variant style={{ flex: 1 }}>
         <div style={{ width: '100%', height: 300 }}>
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
@@ -189,14 +189,14 @@ function MainDashboard() {
       {/* Midterm + Finals Count */}
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12}>
-          <Card title="Calculated Midterm Grade Count" variant="bordered" style={{ height: '100%' }}>
+          <Card title="Calculated Midterm Grade Count" variant style={{ height: '100%' }}>
             <div style={{ fontSize: 24, textAlign: 'center', padding: '24px 0' }}>
               {gradeInfo.midtermCount}
             </div>
           </Card>
         </Col>
         <Col xs={24} sm={12}>
-          <Card title="Calculated Finals Grade Count" variant="bordered" style={{ height: '100%' }}>
+          <Card title="Calculated Finals Grade Count" variant style={{ height: '100%' }}>
             <div style={{ fontSize: 24, textAlign: 'center', padding: '24px 0' }}>
               {gradeInfo.finalCount}
             </div>
@@ -215,7 +215,7 @@ function MainDashboard() {
   >
     {/* Admin: User Events (only once) */}
     {userRole === 'Admin' && (
-      <Card variant="bordered" style={{ flex: 1 }}>
+      <Card variant style={{ flex: 1 }}>
         <UserEvents />
       </Card>
     )}
@@ -224,42 +224,18 @@ function MainDashboard() {
     {userRole === 'Teacher' && (
       <>
         {/* User Role Distribution full width */}
-        <Card title="User Roles Distribution" variant="bordered">
-          <div style={{ width: '100%', height: 300 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={data}
-                  dataKey="count"
-                  nameKey="role"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={120}
-                  fill="#8884d8"
-                  label
-                >
-                  {data.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </Card>
 
         {/* Midterm + Finals Count side by side */}
         <Row gutter={[16, 16]}>
           <Col xs={24} sm={12}>
-            <Card title="Calculated Midterm Grade Count" variant="bordered">
+            <Card title="Calculated Midterm Grade Count" variant>
               <div style={{ fontSize: 24, textAlign: 'center', padding: '24px 0' }}>
                 {gradeInfo.midtermCount}
               </div>
             </Card>
           </Col>
           <Col xs={24} sm={12}>
-            <Card title="Calculated Finals Grade Count" variant="bordered">
+            <Card title="Calculated Finals Grade Count" variant>
               <div style={{ fontSize: 24, textAlign: 'center', padding: '24px 0' }}>
                 {gradeInfo.finalCount}
               </div>
@@ -269,7 +245,7 @@ function MainDashboard() {
 
         {/* Teacher Chart */}
         {teacherChartData.length > 0 && (
-          <Card title="My Students Per Subject" variant="bordered">
+          <Card title="My Students Per Subject" variant>
             <div style={{ width: '100%', height: 400 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
@@ -296,7 +272,7 @@ function MainDashboard() {
 
       {userRole === 'Teacher' && (
         <>
-      <Card title="My Students List" className="mt-4" bordered={false}>
+      <Card title="My Students List" className="mt-4" variant={false}>
         <TeacherStudents />
       </Card>
         </>
@@ -306,11 +282,11 @@ function MainDashboard() {
 
       {userRole !== 'Teacher' && userRole !== 'Student' && (
         <>
-          <Card title="Subjects" className="mt-4" bordered={false}>
+          <Card title="Subjects" className="mt-4" variant={false}>
             <Subjects />
           </Card>
 
-          <Card title="Teacher Management" className="mt-4" bordered={false}>
+          <Card title="Teacher Management" className="mt-4" variant={false}>
             <Teacher />
           </Card>
         </>

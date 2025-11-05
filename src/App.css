@@ -10,3 +10,6 @@
 .ant-input-number {
   border-radius: 6px;
 }
+.ant-tabs-content, .ant-card-body {
+  overflow-x: auto;
+}

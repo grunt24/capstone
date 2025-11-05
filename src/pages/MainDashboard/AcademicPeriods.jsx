@@ -14,6 +14,7 @@ import {
   Select,
 } from "antd";
 import academicPeriodService from "../../../api/academicPeriodService";
+import { PlusOutlined } from '@ant-design/icons';
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -115,11 +116,12 @@ const AcademicPeriods = () => {
   return (
     <Spin spinning={loading} tip="Loading academic periods...">
       <Card
+        style={{ margin: 20, overflowX: "auto" }}
+        bodyStyle={{ padding: 0 }}
         title={<Title level={4}>Academic Periods</Title>}
-        style={{ margin: 20 }}
         extra={
-          <Button type="primary" onClick={() => setModalVisible(true)}>
-            Add Academic Period
+          <Button className="btn btn-success" onClick={() => setModalVisible(true)}>
+            <PlusOutlined />
           </Button>
         }
       >
@@ -128,13 +130,14 @@ const AcademicPeriods = () => {
           dataSource={academicPeriods}
           columns={columns}
           pagination={{ pageSize: 10 }}
+          scroll={{ x: "max-content", y: 400 }}
         />
       </Card>
 
       {/* Modal for adding new academic period */}
       <Modal
         title="Add Academic Period"
-        visible={modalVisible}
+        open={modalVisible}
         onCancel={() => setModalVisible(false)}
         onOk={() => form.submit()}
         okText="Add & Set Current"

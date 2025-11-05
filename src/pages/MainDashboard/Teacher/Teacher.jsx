@@ -5,6 +5,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import axiosInstance from '../../../../api/axiosInstance';
 import loginService from '../../../../api/loginService';
 import { Card } from 'antd';
+import { PlusOutlined } from '@ant-design/icons';
 
 function Teacher() {
   const [teachers, setTeachers] = useState([]);
@@ -27,6 +28,7 @@ function Teacher() {
   const [sortAsc, setSortAsc] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  
 
   useEffect(() => {
     const userDetails = loginService.getUserDetails();
@@ -198,7 +200,7 @@ function Teacher() {
     <div>
       {userRole !== 'Teacher' && (
         <button className="btn btn-success mb-3" onClick={() => openModal()}>
-          Add Teacher
+            <PlusOutlined />
         </button>
       )}
 

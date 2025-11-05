@@ -47,7 +47,7 @@ const PageLayout = () => {
           }}
         >
           <div className="demo-logo-vertical" />
-          <Menulist collapsed={collapsed} />
+          <Menulist collapsed={collapsed} onMenuSelect={() => setCollapsed(true)} />
         </Sider>
       )}
 
@@ -58,9 +58,9 @@ const PageLayout = () => {
           placement="left"
           onClose={() => setDrawerVisible(false)}
           open={drawerVisible}
-          bodyStyle={{ padding: 0 }}
+          styles={{ padding: 0 }}
         >
-          <Menulist collapsed={false} />
+          <Menulist collapsed={false} onMenuSelect={() => setDrawerVisible(false)} />
         </Drawer>
       )}
 

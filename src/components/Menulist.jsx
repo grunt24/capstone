@@ -4,11 +4,12 @@ import { HomeFilled, RightOutlined } from "@ant-design/icons";
 import { Link } from "react-router-dom";
 import logoImg from "../../src/assets/bcas-logo.png";
 
-const SidebarMenu = ({ collapsed }) => {
+const SidebarMenu = ({ collapsed, onMenuSelect  }) => {
   const [fullname, setUserName] = useState("");
   const [role, setRole] = useState("");
   const [academicYear, setAcademicYear] = useState("");
   const [semester, setSemester] = useState("");
+  
 
   useEffect(() => {
     // Get user info from localStorage
@@ -171,6 +172,7 @@ const SidebarMenu = ({ collapsed }) => {
         style={{ minHeight: "auto" }}
         items={items}
         className="no-underline"
+        onClick={onMenuSelect}
       />
     </>
   );

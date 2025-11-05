@@ -28,42 +28,31 @@ export default function StudentsGradesTable() {
   const [loading, setLoading] = useState(false);
   const [calculating, setCalculating] = useState(false);
   const [userRole, setUserRole] = useState("");
+  const [academicPeriods, setAcademicPeriods] = useState([]);
 
   // ✅ Updated: fetch from AcademicPeriods endpoint
-  const fetchYearSemesterFilters = async () => {
-    try {
-      const res = await axiosInstance.get("/AcademicPeriods/all");
-      const periods = res.data;
+const fetchYearSemesterFilters = async () => {
+  try {
+    const res = await axiosInstance.get("/AcademicPeriods/all");
+    const periods = res.data;
 
-      if (Array.isArray(periods) && periods.length > 0) {
-        const years = Array.from(
-          new Set(periods.map((p) => p.academicYear))
-        ).map((year) => ({ label: `AY ${year}`, value: year }));
+    if (Array.isArray(periods) && periods.length > 0) {
+      setAcademicPeriods(periods);
 
-        const sems = Array.from(new Set(periods.map((p) => p.semester))).map(
-          (sem) => ({ label: sem, value: sem })
-        );
-
-        setAcademicYears(years);
-        setSemesters(sems);
-
-        // Preselect current academic year and semester
-        const currentPeriod = periods.find((p) => p.isCurrent);
-        if (currentPeriod) {
-          setSelectedAY(currentPeriod.academicYear);
-          setSelectedSemester(currentPeriod.semester);
-        }
-
-        const userDetails = loginService.getUserDetails();
-        if (userDetails?.role) setUserRole(userDetails.role);
-      } else {
-        message.warning("No academic periods found.");
+      const current = periods.find((p) => p.isCurrent);
+      if (current) {
+        setSelectedAY(current.academicYear);
+        setSelectedSemester(current.semester);
       }
-    } catch (err) {
-      console.error(err);
-      message.error("Failed to load academic year and semester filters.");
+
+      const userDetails = loginService.getUserDetails();
+      if (userDetails?.role) setUserRole(userDetails.role);
     }
-  };
+  } catch {
+    message.error("Failed to load academic periods.");
+  }
+};
+
 
   const fetchGrades = async (ay, sem) => {
     if (!ay || !sem) return;
@@ -131,8 +120,6 @@ export default function StudentsGradesTable() {
     }
   };
 
-
-
   useEffect(() => {
     fetchYearSemesterFilters();
   }, []);
@@ -161,68 +148,66 @@ export default function StudentsGradesTable() {
     },
     { title: "Year Level", dataIndex: "yearLevel", key: "yearLevel" },
 
-      ...(userRole === "Admin"
-    ? [
-      {
-    title: "Midterm Visible",
-    key: "midtermVisible",
-    render: (_, record) => (
-      <Switch
-        checkedChildren="Shown"
-        unCheckedChildren="Hidden"
-checked={record.subjects.every(s => s.midterm?.isVisible)}
-        disabled={userRole !== "Admin"}
-        onChange={async (checked) => {
-          try {
-            await axiosInstance.put(
-              `/ReleaseGrades/toggle-visibility?userId=${record.studentId}&isVisible=${checked}&gradeType=midterm`
-            );
-            message.success(
-              `Midterm grade for ${record.studentFullName} ${
-                checked ? "shown" : "hidden"
-              }.`
-            );
-                 fetchGrades(selectedAY, selectedSemester);
-          } catch {
-            message.error("Failed to update midterm visibility.");
-          }
-        }}
-      />
-    ),
-  },
+    ...(userRole === "Admin"
+      ? [
+          {
+            title: "Midterm Visible",
+            key: "midtermVisible",
+            render: (_, record) => (
+              <Switch
+                checkedChildren="Shown"
+                unCheckedChildren="Hidden"
+                checked={record.subjects.every((s) => s.midterm?.isVisible)}
+                disabled={userRole !== "Admin"}
+                onChange={async (checked) => {
+                  try {
+                    await axiosInstance.put(
+                      `/ReleaseGrades/toggle-visibility?userId=${record.studentId}&isVisible=${checked}&gradeType=midterm`
+                    );
+                    message.success(
+                      `Midterm grade for ${record.studentFullName} ${
+                        checked ? "shown" : "hidden"
+                      }.`
+                    );
+                    fetchGrades(selectedAY, selectedSemester);
+                  } catch {
+                    message.error("Failed to update midterm visibility.");
+                  }
+                }}
+              />
+            ),
+          },
 
-  // ✅ Finals Toggle Column
-  {
-    title: "Finals Visible",
-    key: "finalsVisible",
-    render: (_, record) => (
-      <Switch
-        checkedChildren="Shown"
-        unCheckedChildren="Hidden"
-checked={record.subjects.some(s => s.finals?.isVisible === true)}
-
-
-        disabled={userRole !== "Admin"}
-        onChange={async (checked) => {
-          try {
-            await axiosInstance.put(
-              `/ReleaseGrades/toggle-visibility?userId=${record.studentId}&isVisible=${checked}&gradeType=finals`
-            );
-            message.success(
-              `Finals grade for ${record.studentFullName} ${
-                checked ? "shown" : "hidden"
-              }.`
-            );
-             fetchGrades(selectedAY, selectedSemester);
-          } catch {
-            message.error("Failed to update finals visibility.");
-          }
-        }}
-      />
-    ),
-  },
-    ]
-    : []),
+          // ✅ Finals Toggle Column
+          {
+            title: "Finals Visible",
+            key: "finalsVisible",
+            render: (_, record) => (
+              <Switch
+                checkedChildren="Shown"
+                unCheckedChildren="Hidden"
+                checked={record.subjects.every((s) => s.finals?.isVisible)}
+                disabled={userRole !== "Admin"}
+                onChange={async (checked) => {
+                  try {
+                    await axiosInstance.put(
+                      `/ReleaseGrades/toggle-visibility?userId=${record.studentId}&isVisible=${checked}&gradeType=finals`
+                    );
+                    message.success(
+                      `Finals grade for ${record.studentFullName} ${
+                        checked ? "shown" : "hidden"
+                      }.`
+                    );
+                    fetchGrades(selectedAY, selectedSemester);
+                  } catch {
+                    message.error("Failed to update finals visibility.");
+                  }
+                }}
+              />
+            ),
+          },
+        ]
+      : []),
     {
       title: "Action",
       key: "action",
@@ -251,71 +236,77 @@ checked={record.subjects.some(s => s.finals?.isVisible === true)}
       <div style={{ padding: 24 }}>
         <h2>Student Grades by Academic Year & Semester</h2>
 
-        <Space style={{ marginBottom: 16 }}>
-          <Select
-            placeholder="Select Academic Year"
-            style={{ width: 220 }}
-            options={academicYears}
-            value={selectedAY}
-            onChange={setSelectedAY}
-          />
-          <Select
-            placeholder="Select Semester"
-            style={{ width: 220 }}
-            options={semesters}
-            value={selectedSemester}
-            onChange={setSelectedSemester}
-          />
-          {userRole === "Admin" && (
-<>
-  <Space direction="vertical">
-    {/* RELEASE MIDTERM */}
-    <Popconfirm
-      title="Release all Midterm Grades?"
-      description="This will make ALL midterm grades visible to students."
-      okText="Yes, Release"
-      cancelText="Cancel"
-      onConfirm={async () => {
-        try {
-          await axiosInstance.put(`/ReleaseGrades/release-midterm?isVisible=true`);
-          message.success("All midterm grades released successfully!");
-          fetchGrades(selectedAY, selectedSemester);
-        } catch {
-          message.error("Failed to release midterm grades.");
-        }
+<div style={{ marginBottom: 16 }}>
+  <Space direction="vertical" style={{ width: "100%" }}>
+    <Select
+      placeholder="Select Academic Period"
+      style={{ width: 200 }}
+      options={academicPeriods?.map((p) => ({
+        label: `AY ${p.academicYear} ${p.semester}`,
+        value: `${p.academicYear}-${p.semester}`,
+      }))}
+      value={
+        selectedAY && selectedSemester
+          ? `${selectedAY}-${selectedSemester}`
+          : null
+      }
+      onChange={(val) => {
+        const [year, sem] = val.split("-");
+        setSelectedAY(year);
+        setSelectedSemester(sem);
       }}
-    >
-      <Button type="primary">
-        Release Midterm Grades
-      </Button>
-    </Popconfirm>
+    />
 
-    {/* RELEASE FINALS */}
-    <Popconfirm
-      title="Release all Finals Grades?"
-      description="This will make ALL finals grades visible to students."
-      okText="Yes, Release"
-      cancelText="Cancel"
-      onConfirm={async () => {
-        try {
-          await axiosInstance.put(`/ReleaseGrades/release-finals?isVisible=true`);
-          message.success("All finals grades released successfully!");
-          fetchGrades(selectedAY, selectedSemester);
-        } catch {
-          message.error("Failed to release finals grades.");
-        }
-      }}
-    >
-      <Button type="primary">
-        Release Finals Grades
-      </Button>
-    </Popconfirm>
+    {userRole === "Admin" && (
+      <Space direction="vertical">
+        <Popconfirm
+          title="Release all Midterm Grades?"
+          description="This will make ALL midterm grades visible to students."
+          okText="Yes, Release"
+          cancelText="Cancel"
+          onConfirm={async () => {
+            try {
+              await axiosInstance.put(
+                `/ReleaseGrades/release-midterm?isVisible=true`
+              );
+              message.success("All midterm grades released successfully!");
+              fetchGrades(selectedAY, selectedSemester);
+            } catch {
+              message.error("Failed to release midterm grades.");
+            }
+          }}
+        >
+          <Button type="primary" style={{ width: 200 }}>
+            Release Midterm Grades
+          </Button>
+        </Popconfirm>
+
+        <Popconfirm
+          title="Release all Finals Grades?"
+          description="This will make ALL finals grades visible to students."
+          okText="Yes, Release"
+          cancelText="Cancel"
+          onConfirm={async () => {
+            try {
+              await axiosInstance.put(
+                `/ReleaseGrades/release-finals?isVisible=true`
+              );
+              message.success("All finals grades released successfully!");
+              fetchGrades(selectedAY, selectedSemester);
+            } catch {
+              message.error("Failed to release finals grades.");
+            }
+          }}
+        >
+          <Button type="primary" style={{ width: 200 }}>
+            Release Finals Grades
+          </Button>
+        </Popconfirm>
+      </Space>
+    )}
   </Space>
-</>
+</div>
 
-
-          )}
-        </Space>
 
         <Tabs
           type="card"
@@ -335,6 +326,7 @@ checked={record.subjects.some(s => s.finals?.isVisible === true)}
                       rowKey="studentId"
                       loading={loading}
                       pagination={{ pageSize: 10 }}
+                      scroll={{ x: "max-content" }}
                     />
                   ),
                 }))}

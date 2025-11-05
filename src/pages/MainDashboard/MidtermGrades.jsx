@@ -87,8 +87,10 @@ useEffect(() => {
       const totalsBySubject = {};
 
       fetchedGrades.forEach((g) => {
-        if (!quizCounts[g.subjectName]) quizCounts[g.subjectName] = 5;
-        if (!csCounts[g.subjectName]) csCounts[g.subjectName] = 5;
+        // Quizzes Count
+        if (!quizCounts[g.subjectName]) quizCounts[g.subjectName] = 1;
+        // ClassStanding COunt
+        if (!csCounts[g.subjectName]) csCounts[g.subjectName] = 1;
 
         if (!totalsBySubject[g.subjectName]) {
           totalsBySubject[g.subjectName] = {
@@ -572,7 +574,7 @@ const columns = [
       >
         <Form form={editForm} component={false}>
           <Table
-            bordered
+            variant
             rowKey="id"
             dataSource={subjectGrades}
   columns={columns.map(col => ({ ...col, align: "center" }))}
